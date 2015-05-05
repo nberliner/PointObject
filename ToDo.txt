@@ -1,0 +1,8 @@
+
+ * add pixelSize option to load file
+
+ * make save data better + add function to save to full mito object
+
+ * saveMovie needs a better explanation and should adapted for the backbone and made more robust
+
+ * 
