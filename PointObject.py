@@ -5,32 +5,30 @@ Created on Fri Mar 27 13:43:35 2015
 @author: berliner
 """
 import os
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pylab as plt
-#from matplotlib.patches import Patch
-import numpy as np
-from localisationClass import rapidstormLocalisations, readXYTLocalisations
-from copy import deepcopy
-
-from mplWidgets import RoiSelector
-from cluster import Cluster
-from contour import Contour
-from movieMaker import MovieGenerator
-from skeleton import Skeleton
-from shape import Shape
-from utils import *
-
-#from sklearn.cluster import DBSCAN
-#from sklearn.neighbors.kde import KernelDensity
-from pandas import DataFrame
-from datetime import datetime
-from time import sleep
-#from random import shuffle
 import pickle as pickle
+
+from pandas   import DataFrame
+from datetime import datetime
+from time     import sleep
+from copy     import deepcopy
+
+from localisationClass import rapidstormLocalisations, readXYTLocalisations
+from mplWidgets        import RoiSelector
+from cluster           import Cluster
+from contour           import Contour
+from movieMaker        import MovieGenerator
+from skeleton          import Skeleton
+from shape             import Shape
+from utils             import *
+
+
 
 
 class PointObject(IPyNotebookStyles):
-    
+    """ Handles super-resolution data and allows the outline (shaoe) finding """
     def __init__(self):
         
         super(PointObject, self).__init__()
@@ -39,17 +37,18 @@ class PointObject(IPyNotebookStyles):
         self.data              = None
         self.originalDataFrame = None
         
-        self.movieMade = False
+        self.movieMade  = False
         self.runCluster = False
         
         self.ROIedges = None
         
         
-        self.cluster = None
-        self.contour = None
+        self.cluster  = None
+        self.contour  = None
         self.backbone = None
     
     def loadFile(self, fname, dataType='rapdistorm'):
+        """ Load super-resolution data. """
         if not isinstance(fname, DataFrame):
             if dataType == 'rapdistorm':
                 data = rapidstormLocalisations()
@@ -70,6 +69,10 @@ class PointObject(IPyNotebookStyles):
         self._convertDataFrameToDict()
     
     def save(self, folderName):
+        """ Save extracted structure and contour lines as x y data. """
+        # Note: not very save in the sense that it might fail if the 
+        # contour was not properly calculated. It also does not allow to select
+        # if the smoothed contour should be saved etc.
         if not os.path.isdir(folderName):
             print("The specified folder doe not exist")
             answer = input("Create folder %s ? (y/n)" %folderName)
@@ -82,6 +85,7 @@ class PointObject(IPyNotebookStyles):
         clusterData = self.cluster.getResult()
         contourData = self.contour.getResult()
         
+        # Quick sanity check
         if clusterData is None:
             print("The data seems not be clustered yet. Not saving")
             return
@@ -110,12 +114,20 @@ class PointObject(IPyNotebookStyles):
         return
     
     def clusterData(self, eps, min_samples, frame=None, clusterSizeFiler=50):
+        """
+        Initialisation of data clustering. After selecting the FOV, this
+        step runs the first clustering step and is necessary to extract the
+        object of interest from the total data points.
+        """
         self.cluster = Cluster()
         self.cluster.setData(self.dataFrame)
-        self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler)
+        self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler) # run DBSCAN
         self.runCluster = True
     
     def calculateContour(self, kernel='gaussian', bandwidth=30.0):
+        """
+        Initialise the contour calculation based on a 2D kernel density estimate.
+        """
         if not self.runCluster:
             print('You need to run the clustering first!')
             return
@@ -125,6 +137,16 @@ class PointObject(IPyNotebookStyles):
         self.contour.calculateContour(kernel=kernel, bandwidth=bandwidth)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):
+        """
+        Initialise the backbone finding routine. The "backbone" is approximated
+        by using a skeletonization algorithm. It will thus find a backbone with
+        with branches.
+        
+        To find the skeleton, the localisations are binned in a 2D histogram,
+        blurred by a gaussian and the resulting image is binarized using the
+        threshold value. From the binary images pixel at the edges are taken
+        away until only the skeleton remains.
+        """
         if not self.runCluster:
             print('You need to run the clustering first!')
             return
@@ -139,6 +161,11 @@ class PointObject(IPyNotebookStyles):
         shape.show()
 
     def makeMovie(self, nrPoints=None, nrFrames=None):
+        """
+        Bin the localisations into frames. Sampling density can be controlled
+        by either selecting the number frames that should be grouped or the
+        number of localisations that should be taken for each frame.
+        """
         startTime = datetime.now() # set the calculation start time
    
         assert( not (nrPoints is None     and nrFrames is None) )     # either one or the other has to be specified
@@ -164,14 +191,19 @@ class PointObject(IPyNotebookStyles):
         self.originalDataFrame = deepcopy(self.dataFrame)
 
     def movieFrames(self):
+        """ Iterate over the localisation data in the movie frames. """
         assert( self.movieMade )
         for name, group in self.data.groupby('movieFrame'):
             yield name, group
 
     def getFrame(self, frame):
+        """ Return the localisations in the given frame. """
         return self.data.groupby('movieFrame').get_group(frame)
     
     def saveMovie(self, fname, plotContour=True, sigma=10.0):
+        """
+        Create an .mp4 file showing the PointObject.
+        """
         if self.data is None or not self.movieMade:
             print('You need to load data and make a movie first')
             return
@@ -188,7 +220,7 @@ class PointObject(IPyNotebookStyles):
         m.make(fname)
     
     def setFOV(self, frame=1, convert=True):
-        """ Show the initial frame to set a ROI wich should be used """
+        """ Show the initial frame to set a FOV wich should be used. """
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
             print('Switch to the Qt backend first by executing "%pylab qt"')
@@ -224,7 +256,6 @@ class PointObject(IPyNotebookStyles):
             self._convertDataFrameToDict()
 
     def _selectFOVdata(self):
-        
         if self.ROIedges is None:
             print('No ROI selected yet. Run setROI() first')
             return
@@ -249,68 +280,57 @@ class PointObject(IPyNotebookStyles):
 
 
 
-class mitochondria(object):
-    
-    def __init__(self, fname):
-        
-        if not isinstance(fname, DataFrame):
-            data = rapidstormLocalisations()
-            data.readFile(fname)
-            data = data.data # we only need the DataFrame
-        else:
-            data = fname # you can also handover the DataFrame directly
-        
-        assert( isinstance(data, DataFrame) )
-            
-        self.data = data # should be a DataFrame
-        self.originalData = None # will be populated after making the movie
-        self.mito = dict()
-        self.mitoList = list() # list of cluster per frame that are the mitochondria
-        self.mitoROI = dict()
-        self.clustering = None
-        self.ROIs = dict()
-
-        self.ROIedges = None
-        self.contour = None
-        self.contourSmooth = None
-        self.kdfEstimate = None
-
-        
-
-        
-        self.clusterSizeFiler = 200.
-    
-    def saveMito(self, fname):
-        if fname[-2:] != '.p':
-            fname = fname + '.p'
-        
-        args = self.data, self.originalData, self.mito, self.mitoList, \
-               self.mitoROI, self.clustering, self.ROIs, self.ROIedges, \
-               self.contour, self.contourSmooth, self.kdfEstimate, \
-               self.movieMade
-        
-        pickle.dump( args, open( fname, "wb" ) )
-    
-    def loadMito(self, fname):
-        
-        args = pickle.load( open( fname, "rb" ) )
-        
-        self.data, self.originalData, self.mito, self.mitoList, \
-           self.mitoROI, self.clustering, self.ROIs, self.ROIedges, \
-           self.contour, self.contourSmooth, self.kdfEstimate, \
-           self.movieMade = args
-    
-    def saveData(self, fname):
-        pass
-    
-    
-
+#class mitochondria(object):
+#    
+#    def __init__(self, fname):
+#        
+#        if not isinstance(fname, DataFrame):
+#            data = rapidstormLocalisations()
+#            data.readFile(fname)
+#            data = data.data # we only need the DataFrame
+#        else:
+#            data = fname # you can also handover the DataFrame directly
+#        
+#        assert( isinstance(data, DataFrame) )
+#            
+#        self.data = data # should be a DataFrame
+#        self.originalData = None # will be populated after making the movie
+#        self.mito = dict()
+#        self.mitoList = list() # list of cluster per frame that are the mitochondria
+#        self.mitoROI = dict()
+#        self.clustering = None
+#        self.ROIs = dict()
 #
-#    def _getFigure(self, title):
-#        nrFigs = len(self.mito)
-#        return getFigure(title, nrFigs, self.figSize, self.figTitleSize, self.axesLabelSize)
+#        self.ROIedges = None
+#        self.contour = None
+#        self.contourSmooth = None
+#        self.kdfEstimate = None
 #
-
-
-
+#        
+#
+#        
+#        self.clusterSizeFiler = 200.
+#    
+#    def saveMito(self, fname):
+#        if fname[-2:] != '.p':
+#            fname = fname + '.p'
+#        
+#        args = self.data, self.originalData, self.mito, self.mitoList, \
+#               self.mitoROI, self.clustering, self.ROIs, self.ROIedges, \
+#               self.contour, self.contourSmooth, self.kdfEstimate, \
+#               self.movieMade
+#        
+#        pickle.dump( args, open( fname, "wb" ) )
+#    
+#    def loadMito(self, fname):
+#        
+#        args = pickle.load( open( fname, "rb" ) )
+#        
+#        self.data, self.originalData, self.mito, self.mitoList, \
+#           self.mitoROI, self.clustering, self.ROIs, self.ROIedges, \
+#           self.contour, self.contourSmooth, self.kdfEstimate, \
+#           self.movieMade = args
+#    
+#    def saveData(self, fname):
+#        pass
 
