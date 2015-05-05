@@ -1,0 +1,13 @@
+*.pyc
+*.p
+
+data
+notebooks
+external
+__pycache__
+
+startNotebookOnLinux.sh
+startNotebookOnWindows.cmd
+
+.spyderproject
+.spyderworkspace
