@@ -56,6 +56,7 @@ def getFigure(title, nrFigs, figSize=(16,7), figTitleSize=16, axesLabelSize=12):
     
     for frame in range(1,nrFigs+1):
         ax = fig.add_subplot(nrRows,2,frame)
+        ax.set_aspect('equal')
         ax.set_title("Frame %d" %frame)
         ax.set_xlabel("x position in nm", size=axesLabelSize)
         ax.set_ylabel("y position in nm", size=axesLabelSize)

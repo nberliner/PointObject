@@ -22,6 +22,7 @@ from contour           import Contour
 from movieMaker        import MovieGenerator
 from skeleton          import Skeleton
 from shape             import Shape
+from curvature         import Curvature
 from utils             import *
 
 
@@ -43,9 +44,10 @@ class PointObject(IPyNotebookStyles):
         self.ROIedges = None
         
         
-        self.cluster  = None
-        self.contour  = None
-        self.backbone = None
+        self.cluster   = None
+        self.contour   = None
+        self.backbone  = None
+        self.curvature = None
     
     def loadFile(self, fname, dataType='rapdistorm'):
         """ Load super-resolution data. """
@@ -135,6 +137,18 @@ class PointObject(IPyNotebookStyles):
         self.contour = Contour()
         self.contour.setData( self.cluster.getResult() )
         self.contour.calculateContour(kernel=kernel, bandwidth=bandwidth)
+    
+    def calculateCurvature(self, smooth=True, window=2):
+        """
+        Initialise the curvature
+        """
+        if self.contour is None:
+            print('You need to run the contour selection first!')
+            return
+        
+        self.curvature = Curvature()
+        self.curvature.setData( self.contour.getResult() )
+        self.curvature.calculateCurvature(smooth=smooth, window=window)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):
         """

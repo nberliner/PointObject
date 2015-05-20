@@ -4,7 +4,7 @@ Created on Thu Apr  9 12:12:36 2015
 
 @author: berliner
 """
-
+import matplotlib.pylab as plt
 from matplotlib.widgets import Lasso, RectangleSelector
 from matplotlib import path
 import numpy as np
@@ -82,12 +82,40 @@ class RoiSelector(object):
 
 
 
+class CurvatureSelector(object):
+    
+    def __init__(self, ax):
+        
+        self.ax     = ax
+        self.canvas = ax.figure.canvas
+        
+        self.points = list()
+    
+        # Connect the user interaction
+        self.cid = self.canvas.mpl_connect('button_press_event', self.onpress)
+
+        # start a blocking event loop
+        self.canvas.start_event_loop(timeout=-1)
+    
+    def onpress(self, event):
+#        if self.canvas.widgetlock.locked(): return
+        if event.inaxes is None: return
+        
+        # Get the point
+        x, y = event.xdata, event.ydata
+        
+        self._addPoint(x,y)
 
 
+    def _addPoint(self, x, y):
+        
+        self.points.append( (x,y) ) # store the point
+        
+        self.ax.scatter( x=x, y=y, color='red', s=50) # plot the point
+        plt.draw()
 
-
-
-
+        if len(self.points) == 4:
+            self.canvas.stop_event_loop() # release the loop so that the computation continues
 
 
 
