@@ -21,7 +21,7 @@ from utils import *
 # Allows running the function on multiple cores
 def calculateKernelDensity(args):
     try:
-        frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid = args # the input parameters
+        frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend = args # the input parameters
         
 #        # Get the extend of the scattered data
 #        delta = 100.0 # how much space around the structure should be added (in nm)
@@ -61,10 +61,10 @@ def calculateKernelDensity(args):
         Z = remap0to1(Z) # map array to [0,1]
     except:
         raise
-        frame, kdf, Z, Xgrid, Ygrid, extend, pixelSize = None, None, None, None, None, None, None
+        frame, kdf, Z, Xgrid, Ygrid, extend = None, None, None, None, None, None
     
-#    return [frame, (kdf, Z, Xgrid, Ygrid, extend, pixelSize)]
-    return [frame, (kdf, Z)]
+    return [frame, (kdf, Z, Xgrid, Ygrid, extend)]
+#    return [frame, (kdf, Z)]
 
 def remap0to1(array):
     maxValue = np.max(array)
@@ -142,7 +142,7 @@ class Contour(IPyNotebookStyles):
         Xgrid, Ygrid = np.meshgrid(xpos, ypos)
         positions = np.vstack([Xgrid.ravel(), Ygrid.ravel()]).T # the points of the grid
         
-        return positions, Xgrid, Ygrid, pixelSize
+        return positions, Xgrid, Ygrid, pixelSize, extend
     
     def calculateContour(self, kernel='gaussian', bandwidth=30.0):
 
@@ -157,10 +157,10 @@ class Contour(IPyNotebookStyles):
         # Get the data
         XYData = [ self.data[frame][1] for frame in self.data ]
         
-        positions, Xgrid, Ygrid, self.pixelSize = self._getGridPositions(XYData)
+        positions, Xgrid, Ygrid, self.pixelSize, extend = self._getGridPositions(XYData)
     
         # Calculate the KernelDensity functions on multiple cores
-        kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid)  for frame, XY in enumerate(XYData, start=1) ] )
+        kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend)  for frame, XY in enumerate(XYData, start=1) ] )
         
         # Convert the result into a dict for fast lookup
         self.kdfEstimate = { key: value for key, value in kdfEstimate }
@@ -183,8 +183,8 @@ class Contour(IPyNotebookStyles):
         for frame, ax in self._getFigure("Contour levels at %.1f" %level):
             
             XY = self.data[frame][1]
-#            kernel, Z, Xgrid, Ygrid, extend, pixelSize = self.kdfEstimate[frame]
-            kernel, Z = self.kdfEstimate[frame]
+            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
+#            kernel, Z = self.kdfEstimate[frame]
 #            pixelSize = (50.0, 50.0)
             
             contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
@@ -252,7 +252,8 @@ class Contour(IPyNotebookStyles):
             kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
             
             if contourLevels is None and levelMax is None:
-                levels = np.linspace(-1000, Z.max(), 10)
+#                levels = np.linspace(-1000, Z.max(), 10)
+                levels = np.linspace(0.95, 0.99, 5)
             elif contourLevels is not None:
                 levels = contourLevels
             else:
