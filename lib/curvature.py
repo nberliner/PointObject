@@ -132,10 +132,11 @@ class Curvature(IPyNotebookStyles):
     def table(self):
         rows    = list(self.contourSelected.keys())
         columns = ['Frame', '1', '2', 'Sum']
+        header  = "95 percentile of the curvature segments"
         
         htmlTable = HTMLtable()
         
-        return htmlTable(rows, columns) % self._returnTableValues()
+        return htmlTable(rows, columns,header) % self._returnTableValues()
         
     
     def _returnTableValues(self):
@@ -266,24 +267,12 @@ class Curvature(IPyNotebookStyles):
         segment1Idx = list()
         segment2    = list()
         segment2Idx = list()
-        
-#        print("point1", point1)
-#        print("point1", point2)
-        
+
         for idx, (point, _) in enumerate(path.iter_segments()):
-#            print("point", point)
-#            break
-#            if ( np.all(point == point1) or np.all(point == point2) ) and not START :
-##                print("Setting start True")
-#                START = True
-#            elif ( np.all(point == point1) or np.all(point == point2) ) and START:
-##                print("Setting end True")
-#                END = True
+
             if ( isclose(point,point1) or isclose(point,point2) ) and not START :
-#                print("Setting start True")
                 START = True
             elif ( isclose(point,point1) or isclose(point,point2) ) and START:
-#                print("Setting end True")
                 ENDafter = True
             
             if START and not END:
@@ -295,26 +284,18 @@ class Curvature(IPyNotebookStyles):
             
             if ENDafter: # Take the last point
                 END = True
-        
-#        print("len 1", len(segment1))
-#        print("len 2", len(segment2))
-        
+
         assert( START and END ) # make sure we actually found both points
 
         if len(segment1) < len(segment2):
-#            print("Segment1", segment1)
             segment = mpl.path.Path(segment1, closed=False)
             idx = segment1Idx
         else:
-#            print("Segment2", segment2)
             segment = mpl.path.Path(segment2, closed=False)
             idx = segment2Idx
         
         return segment, idx
-    
-#    def closestPoint(self, point, path):
-#        """ Find and return the closest point to path """
-#        
+
     
     def _getFigure(self, title):
         nrFigs = len(self.data)

@@ -230,7 +230,6 @@ class Cluster(IPyNotebookStyles):
         for frame in range(1,len(self.data)+1):
             # Get the ROI
             ROI = self._selectROI(frame)
-#            self.ROIs[frame] = ROI
             
             # Filter the points in the ROI
             clusters, XYdataCore, XYdataEdge = self.data[frame] # the unfiltered data

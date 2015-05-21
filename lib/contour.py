@@ -22,34 +22,6 @@ from utils import *
 def calculateKernelDensity(args):
     try:
         frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend = args # the input parameters
-        
-#        # Get the extend of the scattered data
-#        delta = 100.0 # how much space around the structure should be added (in nm)
-#        xmin, xmax = np.min(XY[:,0])-delta, np.max(XY[:,0])+delta
-#        ymin, ymax = np.min(XY[:,1])-delta, np.max(XY[:,1])+delta
-#        extend = [xmin, xmax, ymin, ymax]
-#
-#        # Create a grid with spacing of 50nm
-##        Xgrid, Ygrid = np.meshgrid(np.arange(xmin-100, xmax+100, 50), np.arange(ymin-100, ymax+100, 50))
-##        xpos = np.arange(xmin, xmax, 50)
-##        ypos = np.arange(ymin, ymax, 50)
-#        nrPointsX = np.ceil( (xmax - xmin ) / 50.0 )
-#        nrPointsY = np.ceil( (ymax - ymin ) / 50.0 )
-#        xpos = np.linspace(xmin, xmax, nrPointsX, endpoint=True)
-#        ypos = np.linspace(ymin, ymax, nrPointsY, endpoint=True)
-#        
-#        print("xpos", xmin, xmax)
-#        print("ypos", ymin, ymax)
-#        
-#        pixelSizeX = (xmax - xmin ) / nrPointsX
-#        pixelSizeY = (ymax - ymin ) / nrPointsY
-#        pixelSize  = (pixelSizeX, xmin, pixelSizeY, ymin)
-#        
-#        Xgrid, Ygrid = np.meshgrid(xpos, ypos)
-#        positions = np.vstack([Xgrid.ravel(), Ygrid.ravel()]).T # the points of the grid
-        
-        # Calculate the pixelSize
-        
 
         # Compute the kernel density
         kdf = KernelDensity(kernel=kernel, bandwidth=float(bandwidth), algorithm='kd_tree')
@@ -60,13 +32,18 @@ def calculateKernelDensity(args):
         Z = Z.reshape(Xgrid.shape) # put the result back into the grid shape
         Z = remap0to1(Z) # map array to [0,1]
     except:
-        raise
+        # For debugging puropses it helps to first create a NoneType error outside
+        # the multiprocessing part. If an error occurs in the multiprocessing
+        # the thread is not finishing and no traceback is printed (it appears
+        # as if the process is still running).
+        #raise
         frame, kdf, Z, Xgrid, Ygrid, extend = None, None, None, None, None, None
     
     return [frame, (kdf, Z, Xgrid, Ygrid, extend)]
-#    return [frame, (kdf, Z)]
+
 
 def remap0to1(array):
+    """ Map the array values to [0,1]. Returns the modified array."""
     maxValue = np.max(array)
     minValue = np.min(array)
     return ( array - minValue ) / np.abs(maxValue - minValue)
@@ -96,8 +73,7 @@ class Contour(IPyNotebookStyles):
     def getResult(self, smoothed=True):
         if self.contour is None:
             print('You need to first pick the contour level.')
-        
-        
+
         if smoothed:
             if self.contourSmooth is None:
                 print('The smoothed contour was not calcualted yet. Was this desired?')
@@ -112,10 +88,11 @@ class Contour(IPyNotebookStyles):
         # Get the extend of the scattered data
         # delta = how much space around the structure should be added (in nm)
 
+        ## Get the extend of the data
         xmins, xmaxs = list(), list()
         ymins, ymaxs = list(), list()
         
-        for XY in XYData:
+        for XY in XYData: # check each frame
             xmin, xmax = np.min(XY[:,0])-delta, np.max(XY[:,0])+delta
             ymin, ymax = np.min(XY[:,1])-delta, np.max(XY[:,1])+delta
         
@@ -123,29 +100,36 @@ class Contour(IPyNotebookStyles):
             xmaxs.append(xmax)
             ymins.append(ymin)
             ymaxs.append(ymax)
-        
+        # Take the absolute maximum
         xmin, xmax = np.min(xmins), np.max(xmaxs)
         ymin, ymax = np.min(ymins), np.max(ymaxs)
         
         extend = [xmin, xmax, ymin, ymax]
 
-        # Create a grid with spacing of 50nm
+        ## Create a grid with spacing of 50nm on which the kdf is evaluated
         nrPointsX = np.ceil( (xmax - xmin ) / 50.0 )
         nrPointsY = np.ceil( (ymax - ymin ) / 50.0 )
         xpos = np.linspace(xmin, xmax, nrPointsX, endpoint=True)
         ypos = np.linspace(ymin, ymax, nrPointsY, endpoint=True)
         
+        ## Calculate the pixel size to map the information obtained from the
+        ## kdf grid back to nm positions of the scatter data.
         pixelSizeX = (xmax - xmin ) / float(nrPointsX)
         pixelSizeY = (ymax - ymin ) / float(nrPointsY)
         pixelSize  = (pixelSizeX, xmin, pixelSizeY, ymin)
         
+        ## The grid
         Xgrid, Ygrid = np.meshgrid(xpos, ypos)
         positions = np.vstack([Xgrid.ravel(), Ygrid.ravel()]).T # the points of the grid
         
         return positions, Xgrid, Ygrid, pixelSize, extend
     
     def calculateContour(self, kernel='gaussian', bandwidth=30.0):
-
+        """
+        Calculate a kernel density estimate to obtain the contour lines
+        of localisation data. Uses multiprocessing to run the estimate for each
+        frame in parallel.
+        """
         # Check if the data was already set
         if self.data is None:
             print('The data was not yet correctly set.')
@@ -171,6 +155,25 @@ class Contour(IPyNotebookStyles):
         return
     
     def selectContour(self, level=0.995, minPathLength=80):
+        """
+        Input:
+          level           "Probability" level of the contour of type float
+          minPathLength   Filter for small islands of contour levels that can,
+                          for example appear inside the object.
+        Output:
+          None, the contour lines are stored as (x,y) data in self.contour
+         
+        Description:
+          Select the contour level that is used as outline. The kernel density is
+          mapped to [0,1] with 1 being very high probability of having the underlying
+          structure there. `level` selects the "probability" level of the outline.
+          There is a balance between kernel size (i.e. the bandwidth in `calculateContour`)
+          and the selected `level` value. The broader the bandwidth, i.e. the
+          slower the decay of the probability, the higher the `level` needs to
+          be set to achive a tight contouring.
+        
+          Small islands of contour lines can be filtered with `minPathLength`
+        """
         if self.kdfEstimate is None:
             print('Kernel density not yet calculated. Run calculateContour() first')
             return
@@ -184,8 +187,6 @@ class Contour(IPyNotebookStyles):
             
             XY = self.data[frame][1]
             kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
-#            kernel, Z = self.kdfEstimate[frame]
-#            pixelSize = (50.0, 50.0)
             
             contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
 
@@ -195,49 +196,6 @@ class Contour(IPyNotebookStyles):
                 ax.plot(contour[:, 1], contour[:, 0], color='red', linewidth=2)
             
             ax.scatter(x=XY[:,0], y=XY[:,1])
-
-#    def selectContour(self, levelMax=1.5, minPathLength=80):
-#        # see: http://scikit-image.org/docs/dev/auto_examples/plot_contours.html
-#    
-#        if self.kdfEstimate is None:
-#            print('Kernel density not yet calculated. Run calculateContour() first')
-#            return
-#
-#        levelMax = float(levelMax)
-#        self.contour = dict()
-#        for frame, ax in self._getFigure("Contour levels at %.1f percent" %levelMax):
-#            
-#            XY = self.data[frame][1]
-#            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
-#            
-#            levels = np.linspace((levelMax*Z.max())-0.1, levelMax*Z.max(), 2)
-#            CS = ax.contourf(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
-#            ax.cla()
-##            XC, YC = list(), list()
-#            for idx, myline in enumerate(CS.collections[-1].get_paths()):
-#                if len(myline) <= minPathLength: # ignore short segments
-#                    continue
-#
-#                # Store the paths
-#                self.contour.setdefault(frame, list()).append(myline)
-#
-#                # For plotting                
-##                v = myline.vertices
-##                XC.append(v[:,0])
-##                YC.append(v[:,1])
-#                
-#                patch = mpl.patches.PathPatch(myline, facecolor='none', edgecolor='red', lw=2)
-#                ax.add_patch(patch)
-#            
-##            ax.cla()
-#            ax.scatter(x=XY[:,0], y=XY[:,1])
-##            for xc, yc in zip(XC, YC):
-##                ax.scatter(x=xc, y=yc, color='red', s=2)
-#        
-##            self.contour[frame] = np.vstack([xc.ravel(),yc.ravel()]).T
-##            self.contour[frame] = list(zip(XC, YC))
-#        
-#        return
 
 
     def checkContour(self, contourLevels=None, levelMax=None, line=False):
@@ -252,7 +210,6 @@ class Contour(IPyNotebookStyles):
             kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
             
             if contourLevels is None and levelMax is None:
-#                levels = np.linspace(-1000, Z.max(), 10)
                 levels = np.linspace(0.95, 0.99, 5)
             elif contourLevels is not None:
                 levels = contourLevels
@@ -279,27 +236,16 @@ class Contour(IPyNotebookStyles):
         self.contourSmooth = dict()
         
         for frame, ax in self._getFigure("Smoothed contour lines"):
-#            for xc, yc in self.contour[frame]:
-#                contourLine = np.vstack([xc.ravel(),yc.ravel()]).T
-#                contourLineSmooth = moving_average_2d(contourLine, window)
-#                self.contourSmooth.setdefault(frame, list()).append(contourLineSmooth)
-#            
-#                ax.scatter(x=contourLine[:,0],       y=contourLine[:,1],       color='blue', s=5, alpha=0.6)
-#                ax.scatter(x=contourLineSmooth[:,0], y=contourLineSmooth[:,1], color='red',  s=2)
-            
+        
             for contourPaths in self.contour[frame]:
-#                xc, yc = contourPaths.vertices[:,0], contourPaths.vertices[:,1]
                 xc, yc = contourPaths[:,0], contourPaths[:,1]
                 contourLine = np.vstack([xc.ravel(),yc.ravel()]).T
                 contourLineSmooth = moving_average_2d(contourLine, window)
                 
                 contourLineSmoothPath = mpl.path.Path(contourLineSmooth, closed=True)
-#                contourLineSmoothPath = self._generatePathFromXY(contourLineSmooth, closed=True)
-#                self.contourSmooth.setdefault(frame, list()).append(contourLineSmooth)
                 self.contourSmooth.setdefault(frame, list()).append(contourLineSmoothPath)
             
                 ax.scatter(x=contourLine[:,0],       y=contourLine[:,1],       color='blue', s=5, alpha=0.6)
-#                ax.scatter(x=contourLineSmooth[:,0], y=contourLineSmooth[:,1], color='red',  s=2)
                 patch = mpl.patches.PathPatch(contourLineSmoothPath, facecolor='none', edgecolor='red', lw=2)
                 ax.add_patch(patch)
 
@@ -340,6 +286,13 @@ class Contour(IPyNotebookStyles):
             d.append(self._distance(XY, XYlist[-2]))
             
         plt.plot(d)
+
+
+
+
+
+
+
 
 #    def _generatePathFromXY(self, XY, closed=False):
 #        """ Takes an array of shape (-1,2), removes duplicate points and sorts
