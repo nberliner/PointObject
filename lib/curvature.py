@@ -147,7 +147,9 @@ class Curvature(IPyNotebookStyles):
             
             for value in values:
                 index     = value[0]
-                curvature = np.sum( value[1][1] ) / float(len(value[1][1]))
+                # Calculate the curvature value for the selected segment
+                #curvature = np.sum( value[1][1] ) / float(len(value[1][1]))
+                curvature = np.percentile(value[1][1], 95)
                 lookup[ (frame, index) ] = curvature
         
         for (frame, index) in [ (f,i) for f in frames for i in range(1,4) ]:
