@@ -109,7 +109,7 @@ class MovieGenerator(object):
                 ax = im.get_axes() # get the image axes
                 
                 for path in self.contour[frameNr]:
-                    patch = mpl.patches.PathPatch(path, facecolor='none', edgecolor='red', lw=2)
+                    patch = mpl.patches.PathPatch(path, facecolor='none', edgecolor='red', lw=3)
                     contourPaths.append(ax.add_patch(patch))
                 artists.extend(contourPaths)
                 
