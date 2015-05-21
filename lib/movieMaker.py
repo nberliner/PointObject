@@ -23,7 +23,7 @@ class MovieGenerator(object):
         self.contour = contour
         self.sigma = float(sigma)
         
-        self.fig = plt.figure()
+        self.fig = plt.figure(figsize=(10,10), dpi=120)
         plt.axis('off')
         plt.tight_layout()
 
@@ -105,14 +105,13 @@ class MovieGenerator(object):
             
             # If contour was given plot it
             if self.contour is not None:
-                scatterPlot = list()
+                contourPaths = list()
                 ax = im.get_axes() # get the image axes
                 
                 for path in self.contour[frameNr]:
-                    X = path[:,0]
-                    Y = path[:,1]
-                    scatterPlot.append(ax.scatter(x=X, y=Y, color='red',  s=2))
-                artists.extend(scatterPlot)  
+                    patch = mpl.patches.PathPatch(path, facecolor='none', edgecolor='red', lw=2)
+                    contourPaths.append(ax.add_patch(patch))
+                artists.extend(contourPaths)
                 
             images.append( artists )
         

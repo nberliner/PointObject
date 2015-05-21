@@ -15,6 +15,7 @@ from datetime import datetime
 from time     import sleep
 from copy     import deepcopy
 
+from localisationsToMovie import LocalisationsToMovie
 from localisationClass import rapidstormLocalisations, readXYTLocalisations
 from mplWidgets        import RoiSelector
 from cluster           import Cluster
@@ -64,9 +65,9 @@ class PointObject(IPyNotebookStyles):
         # Add the movieFrame column
         self.dataFrame['movieFrame'] = 1
         
-        # Make a backup of the original data
+        # Make a backup of the original data without ROI information
         self.originalDataFrame = deepcopy(self.dataFrame)
-        
+
         # Convert the DataFrame to the Dictionary lookup
         self._convertDataFrameToDict()
     
@@ -174,35 +175,62 @@ class PointObject(IPyNotebookStyles):
         shape.setData(self.contour.getResult(), self.backbone.getResult(), self.cluster.getResult())
         shape.show()
 
-    def makeMovie(self, nrPoints=None, nrFrames=None):
-        """
+    def makeMovie(self, frameLength, stepSize):
+        """ 
         Bin the localisations into frames. Sampling density can be controlled
-        by either selecting the number frames that should be grouped or the
-        number of localisations that should be taken for each frame.
+        by selecting the number of frames that should be grouped.
+        
+        Input:
+          frameLength  How long should one movie frame be, i.e. number 
+                       of original TIFF frames
+          stepSize     Gap between to frames, if stepSize < frameLength 
+                       there will be overlap
         """
+        assert( self.dataFrame is not None )
         startTime = datetime.now() # set the calculation start time
-   
-        assert( not (nrPoints is None     and nrFrames is None) )     # either one or the other has to be specified
-        assert( not (nrPoints is not None and nrFrames is not None) ) # only one can be specified
         
-        if nrPoints is not None and nrFrames is None: # movie frames are based on the localisation number
-            gen = movieFrameGenerator(nrPoints, 'nrPoints')
-            movieFrames = [ gen() for point in self.dataFrame['x'] ]
-        elif nrFrames is not None and nrPoints is None: # movie frames are based on frames
-            gen = movieFrameGenerator(nrFrames, 'nrFrame')
-            movieFrames = [ gen(frame) for frame in self.dataFrame['frame'] ]
+        movie          = LocalisationsToMovie(self.dataFrame)
+        self.dataFrame = movie.create(frameLength, stepSize)
+        self.movieMade = True
         
-        # Add the movieFrame column
-        self.dataFrame['movieFrame'] = movieFrames
-        self.movieMade = True # We're done here
+        # Make a backup of the original data without ROI information
+        self.originalDataFrame = deepcopy(self.dataFrame)
         
         # We're done, print some interesting messages
         time = datetime.now()-startTime
         print("Finished making the movie in:", str(time)[:-7])
         print("Generated {:.0f} frames".format( self.dataFrame['movieFrame'].max() ))
         
-        # Make a copy of the data that will not be touched
-        self.originalDataFrame = deepcopy(self.dataFrame)
+        
+#    def makeMovie(self, nrPoints=None, nrFrames=None):
+#        """
+#        Bin the localisations into frames. Sampling density can be controlled
+#        by either selecting the number of frames that should be grouped or the
+#        number of localisations that should be taken for each frame.
+#        """
+#        startTime = datetime.now() # set the calculation start time
+#   
+#        assert( not (nrPoints is None     and nrFrames is None) )     # either one or the other has to be specified
+#        assert( not (nrPoints is not None and nrFrames is not None) ) # only one can be specified
+#        
+#        if nrPoints is not None and nrFrames is None: # movie frames are based on the localisation number
+#            gen = movieFrameGenerator(nrPoints, 'nrPoints')
+#            movieFrames = [ gen() for point in self.dataFrame['x'] ]
+#        elif nrFrames is not None and nrPoints is None: # movie frames are based on frames
+#            gen = movieFrameGenerator(nrFrames, 'nrFrame')
+#            movieFrames = [ gen(frame) for frame in self.dataFrame['frame'] ]
+#        
+#        # Add the movieFrame column
+#        self.dataFrame['movieFrame'] = movieFrames
+#        self.movieMade = True # We're done here
+#        
+#        # We're done, print some interesting messages
+#        time = datetime.now()-startTime
+#        print("Finished making the movie in:", str(time)[:-7])
+#        print("Generated {:.0f} frames".format( self.dataFrame['movieFrame'].max() ))
+#        
+#        # Make a copy of the data that will not be touched
+#        self.originalDataFrame = deepcopy(self.dataFrame)
 
     def movieFrames(self):
         """ Iterate over the localisation data in the movie frames. """

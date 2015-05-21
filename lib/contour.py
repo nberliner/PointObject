@@ -190,10 +190,14 @@ class Contour(IPyNotebookStyles):
             
             contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
 
-            for contour in contours:
+            for cont in contours:
                 # Store the paths
-                self.contour.setdefault(frame, list()).append(contour)
-                ax.plot(contour[:, 1], contour[:, 0], color='red', linewidth=2)
+                self.contour.setdefault(frame, list()).append(cont)
+                X = cont.vertices[:, 0]
+                Y = cont.vertices[:, 1]
+#                print('X',np.max(X),np.min(X))
+#                print('Y',np.max(Y),np.min(Y))
+                ax.plot(X, Y, color='red', linewidth=2)
             
             ax.scatter(x=XY[:,0], y=XY[:,1])
 
@@ -238,7 +242,8 @@ class Contour(IPyNotebookStyles):
         for frame, ax in self._getFigure("Smoothed contour lines"):
         
             for contourPaths in self.contour[frame]:
-                xc, yc = contourPaths[:,0], contourPaths[:,1]
+                xc = contourPaths.vertices[:,0]
+                yc = contourPaths.vertices[:,1]
                 contourLine = np.vstack([xc.ravel(),yc.ravel()]).T
                 contourLineSmooth = moving_average_2d(contourLine, window)
                 
@@ -263,14 +268,16 @@ class Contour(IPyNotebookStyles):
                 pass
             else:
                 currentContour = np.asarray([ mapping(x,y) for (x,y) in contour ])
-                contours.append(currentContour)
+                contours.append( mpl.path.Path(currentContour, closed=True) )
         return contours
     
     def _mappingCounturFunction(self, pixelSize):
         # Need to shift additionally by half the pixelsize to match perfectly
         # pixelSizes are inverted.. the "x" one is for "y" and vice versa
-        return lambda x,y: ( x*float(pixelSize[2])+pixelSize[3]+pixelSize[2]/2., \
-                             y*float(pixelSize[0])+pixelSize[1]+pixelSize[0]/2 )
+#        return lambda x,y: ( x*float(pixelSize[2])+pixelSize[3]+pixelSize[2]/2., \
+#                             y*float(pixelSize[0])+pixelSize[1]+pixelSize[0]/2 )
+        return lambda y,x: ( x*float(pixelSize[0])+pixelSize[1]+pixelSize[0]/2.0, \
+                             y*float(pixelSize[2])+pixelSize[3]+pixelSize[2]/2.0  )
 
     def _distance(self, XY, XYother):
         return np.sqrt(  np.power( (XY[0] - XYother[0]),2 ) + np.power( (XY[1] - XYother[1]),2 )  )
