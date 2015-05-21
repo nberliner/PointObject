@@ -179,8 +179,12 @@ class Curvature(IPyNotebookStyles):
         X    = [ i for i in range(1,len(dataSideOne)+1) ]
         
         for frame, ax in figs:
+            # Configure the subfigure
             ax.set_aspect('auto')
             ax.set_title("Side %d" % frame)
+            ax.axhline(y=0,c="black",linewidth=0.5,zorder=0)
+            
+            # Plot the data
             ax.plot(X,curv[frame-1])
         
         return
