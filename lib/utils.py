@@ -115,6 +115,7 @@ class movieFrameGenerator(object):
         
         if self.movieType == 'nrFrame':
             # This should be done if the movie is assembles based on the number of frames
+            assert( frame is not None )
             if frame >= self.count * self.limit:
                 self.count += 1
                 self.ID    += 1
