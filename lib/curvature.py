@@ -149,8 +149,13 @@ class Curvature(IPyNotebookStyles):
             for value in values:
                 index     = value[0]
                 # Calculate the curvature value for the selected segment
-                #curvature = np.sum( value[1][1] ) / float(len(value[1][1]))
-                curvature = np.percentile(value[1][1], 95)
+                # We need to consider that we actually want to take the low
+                # percentile if the overall curvature is negative.
+                percent = 95
+                if np.sum(value[1][1]) > 0:
+                    curvature = np.percentile(value[1][1], percent)
+                else:
+                    curvature = np.percentile(value[1][1], 100-percent)
                 lookup[ (frame, index) ] = curvature
         
         for (frame, index) in [ (f,i) for f in frames for i in range(1,4) ]:
@@ -160,8 +165,25 @@ class Curvature(IPyNotebookStyles):
                 result.append( lookup[(frame, 1)] + lookup[(frame, 2)] )
         
         return tuple(result)
+    
+    
+    def plotCurvature(self):
         
+        title = "Curvature progression"
+        figs = getFigure(title, 2, self.doubleFigure, self.figTitleSize, self.axesLabelSize)
         
+        values = self._returnTableValues()
+        dataSideOne = [ values[i  ] for i in range(0,len(values),3)]
+        dataSideTwo = [ values[i+1] for i in range(0,len(values),3)]
+        curv = [dataSideOne, dataSideTwo]
+        X    = [ i for i in range(1,len(dataSideOne)+1) ]
+        
+        for frame, ax in figs:
+            ax.set_aspect('auto')
+            ax.set_title("Side %d" % frame)
+            ax.plot(X,curv[frame-1])
+        
+        return
         
     def _placeText(self, text, ax, pc1, pc2):
         (xc1, yc1) = pc1
