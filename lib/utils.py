@@ -10,7 +10,7 @@ from scipy.signal import convolve2d
 from scipy.ndimage import gaussian_filter1d
 
 import multiprocessing
-
+import pickle
 
 
 def moving_average_2d(data, window):
@@ -63,6 +63,11 @@ def getFigure(title, nrFigs, figSize=(16,7), figTitleSize=16, axesLabelSize=12):
         yield frame, ax
 
 
+def saveMito(pointObject, fname):
+    pickle.dump( pointObject, open(fname, 'wb') )
+
+def loadPointObject(fname):
+    return pickle.load( open(fname, "rb") )
 
 ## This implementation was taken from
 ## http://stackoverflow.com/a/16071616/1922650
@@ -90,6 +95,9 @@ def parmap(f, X, nprocs = multiprocessing.cpu_count()):
     [p.join() for p in proc]
 
     return [x for i,x in sorted(res)]
+
+
+
 
 
 

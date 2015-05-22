@@ -175,22 +175,22 @@ class PointObject(IPyNotebookStyles):
         shape.setData(self.contour.getResult(), self.backbone.getResult(), self.cluster.getResult())
         shape.show()
 
-    def makeMovie(self, frameLength, stepSize):
+    def makeMovie(self, nrFrames=2000, stepSize=500):
         """ 
         Bin the localisations into frames. Sampling density can be controlled
         by selecting the number of frames that should be grouped.
         
         Input:
-          frameLength  How long should one movie frame be, i.e. number 
+          nrFrames     How long should one movie frame be, i.e. number 
                        of original TIFF frames
-          stepSize     Gap between to frames, if stepSize < frameLength 
+          stepSize     Gap between to frames, if stepSize < nrFrames 
                        there will be overlap
         """
         assert( self.dataFrame is not None )
         startTime = datetime.now() # set the calculation start time
         
         movie          = LocalisationsToMovie(self.dataFrame)
-        self.dataFrame = movie.create(frameLength, stepSize)
+        self.dataFrame = movie.create(nrFrames, stepSize)
         self.movieMade = True
         
         # Make a backup of the original data without ROI information
