@@ -44,9 +44,9 @@ class MovieGenerator(object):
         # http://matplotlib.sourceforge.net/api/animation_api.html
         # The ffmpeg binaries should be residing in the PointObject Path
         if 'linux' in sys.platform:
-            ffmpegFolder = os.path.join('..', 'external', 'ffmpeg', 'linux', 'ffmpeg-2.4.4', 'ffmpeg')
+            ffmpegFolder = os.path.join('..', '..', 'external', 'ffmpeg', 'linux', 'ffmpeg-2.4.4', 'ffmpeg')
         elif 'win' in sys.platform:
-            ffmpegFolder = os.path.join('..', 'external', 'ffmpeg', 'win64', 'ffmpeg-20150501-git-02001ad-win64-static', 'bin', 'ffmpeg')
+            ffmpegFolder = os.path.join('..', '..', 'external', 'ffmpeg', 'win64', 'ffmpeg-20150501-git-02001ad-win64-static', 'bin', 'ffmpeg')
 
 #        plt.rcParams['animation.ffmpeg_path'] = '/home/berliner/bin/ffmpeg/ffmpeg-2.4.4/ffmpeg'
         plt.rcParams['animation.ffmpeg_path'] = ffmpegFolder
