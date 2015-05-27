@@ -35,6 +35,8 @@ class PointObject(IPyNotebookStyles):
         
         super(PointObject, self).__init__()
         
+        self.name = None
+        
         self.dataFrame         = None
         self.data              = None
         self.originalDataFrame = None
@@ -53,6 +55,7 @@ class PointObject(IPyNotebookStyles):
     def loadFile(self, fname, dataType='rapdistorm'):
         """ Load super-resolution data. """
         if not isinstance(fname, DataFrame):
+            self.name = fname # set the name of the object
             if dataType == 'rapdistorm':
                 data = rapidstormLocalisations()
             elif dataType == 'xyt':

@@ -63,7 +63,10 @@ def getFigure(title, nrFigs, figSize=(16,7), figTitleSize=16, axesLabelSize=12):
         yield frame, ax
 
 
-def saveMito(pointObject, fname):
+def saveMito(pointObject, fname=None):
+    if fname is None:
+        fname = pointObject.name + '.pointObject.p'
+    assert( fname is not None )
     pickle.dump( pointObject, open(fname, 'wb') )
 
 def loadPointObject(fname):
