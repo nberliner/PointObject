@@ -206,6 +206,7 @@ class Curvature(IPyNotebookStyles):
         ax.set_title("Frame %d" %frame)
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
+        ax.set_aspect('equal')
         
         # Get the data
         for contour, C in self.dataCurvature[frame]:
