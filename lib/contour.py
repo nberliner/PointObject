@@ -84,7 +84,7 @@ class Contour(IPyNotebookStyles):
     def queryContourData(self):
         return self.data
     
-    def _getGridPositions(self, XYData, delta=100.0):
+    def _getGridPositions(self, XYData, delta=200.0):
         # Get the extend of the scattered data
         # delta = how much space around the structure should be added (in nm)
 
