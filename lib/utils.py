@@ -99,7 +99,7 @@ def parmap(f, X, nprocs = multiprocessing.cpu_count()):
 
     return [x for i,x in sorted(res)]
 
-
+## End implementation
 
 
 
