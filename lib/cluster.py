@@ -79,13 +79,13 @@ class Cluster(IPyNotebookStyles):
         nrFigs = len(self.data)
         return getFigure(title, nrFigs, self.doubleFigure, self.figTitleSize, self.axesLabelSize)
     
-    def cluster(self, eps, min_samples, frame=None, clusterSizeFiler=50):
+    def cluster(self, eps, min_samples, frame=None, clusterSizeFiler=50, askUser=True):
         startTime = datetime.now() # set the calculation start time
         
         if frame is None:
             frames = [ frameData for _, frameData in self.dataFrame.groupby('movieFrame') ]
         else:
-            frames = [self.dataFrame, ]
+            frames = [ self.dataFrame[ self.dataFrame.movieFrame==frame ], ]
         
         # First do the clustering on multiple cores
 #        func = lambda (frameNr, XY): (frameNr, DBSCAN(eps=eps, min_samples=min_samples).fit(XY))
@@ -146,11 +146,11 @@ class Cluster(IPyNotebookStyles):
             
                 xyCore = XY[class_member_mask & core_samples_mask]
                 ax.plot(xyCore[:, 0], xyCore[:, 1], 'o', markerfacecolor=col,
-                         markeredgecolor='k', markersize=4);
+                         markeredgecolor='none', markersize=2);
             
                 xyEdge = XY[class_member_mask & ~core_samples_mask]
                 ax.plot(xyEdge[:, 0], xyEdge[:, 1], 'o', markerfacecolor=col,
-                         markeredgecolor='k', markersize=2);
+                         markeredgecolor='none', markersize=1);
                 
                 # Create the legend but keep only big clusters
                 if len(xyCore) > clusterSizeFiler and not k == -1:
@@ -164,7 +164,7 @@ class Cluster(IPyNotebookStyles):
             ax.legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
             plt.show()
             
-            if frame is None:
+            if frame is None and askUser:
                 keep = input("Which cluster(s) to keep? Please type integer value(s) ")
                 if keep == "":
                     pass

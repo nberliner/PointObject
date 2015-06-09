@@ -119,7 +119,7 @@ class PointObject(IPyNotebookStyles):
         
         return
     
-    def clusterData(self, eps, min_samples, frame=None, clusterSizeFiler=50):
+    def clusterData(self, eps, min_samples, frame=None, clusterSizeFiler=50, askUser=True):
         """
         Initialisation of data clustering. After selecting the FOV, this
         step runs the first clustering step and is necessary to extract the
@@ -127,7 +127,7 @@ class PointObject(IPyNotebookStyles):
         """
         self.cluster = Cluster()
         self.cluster.setData(self.dataFrame)
-        self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler) # run DBSCAN
+        self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
         self.runCluster = True
     
     def calculateContour(self, kernel='gaussian', bandwidth=30.0):
