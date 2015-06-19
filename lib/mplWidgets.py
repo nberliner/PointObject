@@ -5,7 +5,7 @@ Created on Thu Apr  9 12:12:36 2015
 @author: berliner
 """
 import matplotlib.pylab as plt
-from matplotlib.widgets import Lasso, RectangleSelector
+from matplotlib.widgets import Lasso, RectangleSelector, Button
 from matplotlib import path
 import numpy as np
 
@@ -13,12 +13,25 @@ import numpy as np
 # See link for information on how to adapt it to subplots
 
 class LassoManager(object):
-    def __init__(self, ax):
+    def __init__(self, fig, ax):
         
+        self.fig    = fig
         self.axes   = ax
         self.canvas = ax.figure.canvas
         
+        # Adjust the figure layout and add the buttons
+        print("Adding buttons")
+        fig.subplots_adjust(bottom=0.2)
+        axprev = self.fig.add_axes([0.7, 0.05, 0.1, 0.075])
+        axnext = self.fig.add_axes([0.81, 0.05, 0.1, 0.075])
+        bnext = Button(axnext, 'Accept')
+        bnext.on_clicked(self.accept)
+        bprev = Button(axprev, 'Reject')
+        bprev.on_clicked(self.reject)
+        
         self.collection = None # Stores the Path object
+        self.accepted = False
+        self.rejected = True
 
         # Connect the user interaction
         self.cid = self.canvas.mpl_connect('button_press_event', self.onpress)
@@ -29,7 +42,7 @@ class LassoManager(object):
 
     def callback(self, verts):
         self.collection = path.Path(verts)
-        self.canvas.stop_event_loop() # release the loop so that the computation continues
+#        self.canvas.stop_event_loop() # release the loop so that the computation continues
 
     def onpress(self, event):
         if self.canvas.widgetlock.locked(): return
@@ -38,7 +51,14 @@ class LassoManager(object):
         # acquire a lock on the widget drawing
         self.canvas.widgetlock(self.lasso)
 
-
+    def accept(self, event):
+        print("accepting")
+        self.accepted = True
+        self.canvas.stop_event_loop() # release the loop so that the computation continues
+        
+    def reject(self, event):
+        print("removing")
+        self.canvas.stop_event_loop() # release the loop so that the computation continues
 
 
 class RoiSelector(object):
