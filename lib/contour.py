@@ -106,7 +106,9 @@ class Contour(IPyNotebookStyles):
         
         extend = [xmin, xmax, ymin, ymax]
 
-        ## Create a grid with spacing of 50nm on which the kdf is evaluated
+        ## Create a grid with spacing of 5nm on which the kdf is evaluated
+#        nrPointsX = np.ceil( (xmax - xmin ) / 5.0 )
+#        nrPointsY = np.ceil( (ymax - ymin ) / 5.0 )
         nrPointsX = np.ceil( (xmax - xmin ) / 50.0 )
         nrPointsY = np.ceil( (ymax - ymin ) / 50.0 )
         xpos = np.linspace(xmin, xmax, nrPointsX, endpoint=True)
