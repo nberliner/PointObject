@@ -88,34 +88,40 @@ class PointObject(IPyNotebookStyles):
                 print("Not saving the data.")
                 return
         
-        clusterData = self.cluster.getResult()
-        contourData = self.contour.getResult()
+        try:
+            clusterData = self.cluster.getResult()
+        except AttributeError:
+            clusterData = None
+        try:
+            contourData = self.contour.getResult()
+        except AttributeError:
+            contourData = None
         
         # Quick sanity check
         if clusterData is None:
             print("The data seems not be clustered yet. Not saving")
-            return
         if contourData is None:
             print("The contour seems not be calculated yet. Not saving")
-            return
         
         for frame in range(1,len(self.data)+1):
             # Define the file names
             clusterFile = os.path.join( folderName, 'clusterData_frame_%02d.dat' %frame )
             contourFile = os.path.join( folderName, 'contourData_frame_%02d.dat' %frame )
             # Save the data
-            with open(clusterFile, 'w') as f:
-                f.write('x_in_nm\ty_in_nm\n')
-                _, XY, _ = clusterData[frame]
-                for i in range( np.shape(XY)[0] ):
-                    f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
+            if clusterData is not None:
+                with open(clusterFile, 'w') as f:
+                    f.write('x_in_nm\ty_in_nm\n')
+                    _, XY, _ = clusterData[frame]
+                    for i in range( np.shape(XY)[0] ):
+                        f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
             
-            with open(contourFile, 'w') as f:
-                f.write('x_in_nm\ty_in_nm\n')
-                XY = contourData[frame]
-                for item in XY:
-                    for i in range( np.shape(item)[0] ):    
-                        f.write( str(item[i,0]) + '\t' + str(item[i,1]) + '\n' )
+            if contourData is not None:
+                with open(contourFile, 'w') as f:
+                    f.write('x_in_nm\ty_in_nm\n')
+                    XY = contourData[frame]
+                    for item in XY:
+                        for i in range( np.shape(item)[0] ):    
+                            f.write( str(item[i,0]) + '\t' + str(item[i,1]) + '\n' )
         
         return
     
