@@ -266,15 +266,10 @@ class Cluster(IPyNotebookStyles):
             ax.scatter(x=XYdataEdge[:,0], y=XYdataEdge[:,1], edgecolor='none', facecolor='red', s=1)
 
         # Create the widget that lets the user draw the ROI
-        accepted = False
-        while not accepted:
-            print("lasso manager start")
-            lman = LassoManager(fig, ax)
-            accepted = lman.accepted
-            # The ROI was drawn, let the user look at it for a second and then go on
-            sleep(1)
-        
-        print("accepted")
+        lman = LassoManager(fig, ax)
+        # The ROI was drawn, let the user look at it for a second and then go on
+        sleep(1)
+
         plt.close(fig)
         return lman.collection
 

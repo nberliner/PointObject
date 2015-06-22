@@ -6,11 +6,14 @@ Created on Thu Apr  9 12:12:36 2015
 """
 import matplotlib.pylab as plt
 from matplotlib.widgets import Lasso, RectangleSelector, Button
+import matplotlib.patches as patches
 from matplotlib import path
 import numpy as np
 
 # Adapted from here: http://stackoverflow.com/a/23348176
 # See link for information on how to adapt it to subplots
+#
+# Also see: http://matplotlib.org/examples/event_handling/lasso_demo.html
 
 class LassoManager(object):
     def __init__(self, fig, ax):
@@ -20,18 +23,16 @@ class LassoManager(object):
         self.canvas = ax.figure.canvas
         
         # Adjust the figure layout and add the buttons
-        print("Adding buttons")
         fig.subplots_adjust(bottom=0.2)
-        axprev = self.fig.add_axes([0.7, 0.05, 0.1, 0.075])
+#        axprev = self.fig.add_axes([0.7, 0.05, 0.1, 0.075])
         axnext = self.fig.add_axes([0.81, 0.05, 0.1, 0.075])
         bnext = Button(axnext, 'Accept')
         bnext.on_clicked(self.accept)
-        bprev = Button(axprev, 'Reject')
-        bprev.on_clicked(self.reject)
+#        bprev = Button(axprev, 'Reject')
+#        bprev.on_clicked(self.reject)
         
-        self.collection = None # Stores the Path object
-        self.accepted = False
-        self.rejected = True
+        self.collection = None # stores the Path object
+        self.userROI    = None # handle to the drawn path
 
         # Connect the user interaction
         self.cid = self.canvas.mpl_connect('button_press_event', self.onpress)
@@ -42,24 +43,51 @@ class LassoManager(object):
 
     def callback(self, verts):
         self.collection = path.Path(verts)
-#        self.canvas.stop_event_loop() # release the loop so that the computation continues
+
+        # Draw the path
+        patch = patches.PathPatch(self.collection, facecolor='none', lw=2)
+        self.userROI = self.axes.add_patch(patch)
+        
+        self.canvas.draw_idle()
+        self.canvas.widgetlock.release(self.lasso)
+        del self.lasso
 
     def onpress(self, event):
         if self.canvas.widgetlock.locked(): return
         if event.inaxes is None: return
+        
+        # Remove the previous ROI, does somehow only work after drawing the new ROI is done
+        if self.userROI is not None:
+            self.userROI.remove()
+            
         self.lasso = Lasso(event.inaxes, (event.xdata, event.ydata), self.callback)
-        # acquire a lock on the widget drawing
-        self.canvas.widgetlock(self.lasso)
+        self.canvas.widgetlock(self.lasso) # acquire a lock on the widget drawing
 
     def accept(self, event):
-        print("accepting")
-        self.accepted = True
-        self.canvas.stop_event_loop() # release the loop so that the computation continues
-        
-    def reject(self, event):
-        print("removing")
+        if self.collection is None:
+            self._keepAll()
         self.canvas.stop_event_loop() # release the loop so that the computation continues
 
+    def _keepAll(self):
+        # Keep all the points
+        xmin, xmax = self.axes.get_xbound()
+        ymin, ymax = self.axes.get_ybound()
+        verts = [
+                 (xmin, ymin), # left, bottom
+                 (xmin, ymax), # left, top
+                 (xmax, ymax), # right, top
+                 (xmax, ymin), # right, bottom
+                 (0., 0.),     # ignored
+                ]
+        
+        codes = [path.Path.MOVETO,
+                 path.Path.LINETO,
+                 path.Path.LINETO,
+                 path.Path.LINETO,
+                 path.Path.CLOSEPOLY,
+                 ]
+
+        self.collection = path.Path(verts, codes)
 
 class RoiSelector(object):
     
