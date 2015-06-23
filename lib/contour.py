@@ -110,6 +110,7 @@ class Contour(IPyNotebookStyles):
 #        nrPointsX = np.ceil( (xmax - xmin ) / 5.0 )
 #        nrPointsY = np.ceil( (ymax - ymin ) / 5.0 )
         nrPointsX = np.ceil( (xmax - xmin ) / 50.0 )
+
         nrPointsY = np.ceil( (ymax - ymin ) / 50.0 )
         xpos = np.linspace(xmin, xmax, nrPointsX, endpoint=True)
         ypos = np.linspace(ymin, ymax, nrPointsY, endpoint=True)
