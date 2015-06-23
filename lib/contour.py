@@ -10,10 +10,13 @@ import matplotlib as mpl
 import matplotlib.pylab as plt
 
 from sklearn.neighbors.kde import KernelDensity
-from scipy.spatial import distance
+#from scipy.spatial import distance
 from skimage import measure
 
+from sklearn.grid_search import GridSearchCV
+
 from datetime import datetime
+import warnings
 
 from utils import *
 
@@ -30,7 +33,7 @@ def calculateKernelDensity(args):
         # Evaluate the kernel on the grid
         Z = kdf.score_samples(positions)
         Z = Z.reshape(Xgrid.shape) # put the result back into the grid shape
-        Z = remap0to1(Z) # map array to [0,1]
+#        Z = remap0to1(Z) # map array to [0,1]
     except:
         # For debugging puropses it helps to first create a NoneType error outside
         # the multiprocessing part. If an error occurs in the multiprocessing
@@ -127,7 +130,7 @@ class Contour(IPyNotebookStyles):
         
         return positions, Xgrid, Ygrid, pixelSize, extend
     
-    def calculateContour(self, kernel='gaussian', bandwidth=30.0):
+    def calculateContour(self, kernel='gaussian', bandwidth=None):
         """
         Calculate a kernel density estimate to obtain the contour lines
         of localisation data. Uses multiprocessing to run the estimate for each
@@ -145,10 +148,15 @@ class Contour(IPyNotebookStyles):
         XYData = [ self.data[frame][1] for frame in self.data ]
         
         positions, Xgrid, Ygrid, self.pixelSize, extend = self._getGridPositions(XYData)
+        
+        # Find the best parameters for kernel density estimate
+        if bandwidth is None:
+            kernel    = 'gaussian'
+            bandwidth = self._optimiseBandwidth()
     
         # Calculate the KernelDensity functions on multiple cores
         kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend)  for frame, XY in enumerate(XYData, start=1) ] )
-        
+    
         # Convert the result into a dict for fast lookup
         self.kdfEstimate = { key: value for key, value in kdfEstimate }
         
@@ -156,6 +164,31 @@ class Contour(IPyNotebookStyles):
         time = datetime.now()-startTime
         print("Finished kernel density estimation in:", str(time)[:-7])
         return
+    
+    def _optimiseBandwidth(self, lower=15, upper=40, num=25, frame=1):
+        ## See https://jakevdp.github.io/blog/2013/12/01/kernel-density-estimation/
+        
+        # Create the parameter space that should be sampled
+        params = {'bandwidth': np.linspace(lower, upper, num=num, endpoint=True), \
+                  'algorithm': ['kd_tree',], \
+                  'kernel':    ['gaussian', ] }
+        
+        grid = GridSearchCV(KernelDensity(),
+                            params,
+                            cv=20,
+                            n_jobs=-1) # 20-fold cross-validation, multi core
+        
+        # Select the data from frame
+        XY = self.data[frame][1]
+        grid.fit(XY)
+        print("Using the estimated paramters:")
+        print(grid.best_params_)
+        
+        if grid.best_params_['bandwidth'] == lower or grid.best_params_['bandwidth'] == upper:
+            warnings.warn("Warning: see bandwidth parameter was estimated to be optimal at one sample boundary")
+            warnings.warn("Try shifting the sample window!")
+        
+        return grid.best_params_['bandwidth']
     
     def selectContour(self, level=0.995, minPathLength=80):
         """
