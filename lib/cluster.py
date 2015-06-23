@@ -219,15 +219,25 @@ class Cluster(IPyNotebookStyles):
         return _data
             
         
-    def confineClusters(self):
+    def confineClusters(self, frame=None):
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
             print('Switch to the Qt backend first by executing "%pylab qt"')
             return False
         
+        # Check which frame(s) should be refined
+        if frame is None:
+            frames = range(1,len(self.data)+1)
+        elif isinstance(frame, list):
+            frames = frame
+        else:
+            assert( isinstance(frame, int) )
+            frames = [frame, ]
+        
+        if self.dataROI is None:
+            self.dataROI = dict()
         # Let the user select the ROI
-        self.dataROI = dict()
-        for frame in range(1,len(self.data)+1):
+        for frame in frames:
             # Get the ROI
             ROI = self._selectROI(frame)
             
@@ -242,7 +252,7 @@ class Cluster(IPyNotebookStyles):
             # Add the confined data
             self.dataROI[frame] = [clusters, XYdataCoreROI, XYdataEdgeROI]
     
-        print('Selected the structure in %i frames.' %frame)
+#        print('Selected the structure in %i frames.' %frame)
     
     def _selectROI(self, frame):
         # Check if switched to qt mode
