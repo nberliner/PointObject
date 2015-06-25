@@ -193,7 +193,7 @@ class Contour(IPyNotebookStyles):
         return grid.best_params_['bandwidth']
     
     
-    def findContourMorph(self, iterations=1500):
+    def findContourMorph(self, iterations=1500, smoothing=1, lambda1=4, lambda2=1):
         # Set the calculation start time
         startTime = datetime.now()
         
@@ -203,7 +203,7 @@ class Contour(IPyNotebookStyles):
         imgs = [ np.exp(self.kdfEstimate[frame][1]) for frame in range(1,len(self.kdfEstimate)+1) ]
         
         # Set up the Morphsnake class and run the first iterations
-        self.morph = Morphsnake(imgs)
+        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2)
         self.morph.run(iterations)
         
         # We're done with caluclation, print some interesting messages
