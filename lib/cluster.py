@@ -87,6 +87,9 @@ class Cluster(IPyNotebookStyles):
         if frame is None:
             frames = [ frameData for _, frameData in self.dataFrame.groupby('movieFrame') ]
         else:
+            if frame == 0:
+                print("Frame numbers start at 1! Setting frame=1")
+                frame = 1
             frames = [ self.dataFrame[ self.dataFrame.movieFrame==frame ], ]
         
         # First do the clustering on multiple cores
