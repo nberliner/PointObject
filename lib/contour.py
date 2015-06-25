@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 28 15:43:44 2015
+Part of PointObject (https://github.com/nberliner/PointObject)
 
-@author: berliner
+An IPython Notebook based anlysis tool for point-localisation
+super-resolution data. 
+
+
+Author(s): Niklas Berliner (niklas.berliner@gmail.com)
+
+Copyright (C) 2015 Niklas Berliner
 """
 
 import numpy as np
