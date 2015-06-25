@@ -41,7 +41,7 @@ class Consumer(multiprocessing.Process):
 #        return '%s * %s' % (self.a, self.b)
 
 
-def runMultiCore(jobs, numberProcessors=4):
+def runMultiCore(jobs, numberProcessors=multiprocessing.cpu_count()):
     """
     Run the tasks in jobs on numberProcessors cores.
     
