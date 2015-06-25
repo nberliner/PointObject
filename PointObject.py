@@ -136,7 +136,8 @@ class PointObject(IPyNotebookStyles):
         self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
         self.runCluster = True
     
-    def calculateContour(self, kernel='gaussian', bandwidth=30.0, iterations=1500):
+    def calculateContour(self, kernel='gaussian', bandwidth=30.0, iterations=1500, 
+                         smoothing=1, lambda1=4, lambda2=1, kde=True, morph=True):
         """
         Initialise the contour calculation based on a 2D kernel density estimate.
         """
@@ -144,10 +145,16 @@ class PointObject(IPyNotebookStyles):
             print('You need to run the clustering first!')
             return
         
-        self.contour = Contour()
-        self.contour.setData( self.cluster.getResult() )
-        self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
-        self.contour.findContourMorph(iterations)
+        if kde:
+            self.contour = Contour()
+            self.contour.setData( self.cluster.getResult() )
+            self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
+        if morph:
+            self.contour.findContourMorph(iterations=iterations ,\
+                                          smoothing=smoothing   ,\
+                                          lambda1=lambda1       ,\
+                                          lambda2=lambda2
+                                          )
     
     def calculateCurvature(self, smooth=True, window=2):
         """
