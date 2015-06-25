@@ -19,9 +19,13 @@ def circle_levelset(shape, center, sqradius, scalerow=1.0):
 
 class Morphsnake(object):
     
-    def __init__(self, data):
+    def __init__(self, data, smoothing=1, lambda1=4, lambda2=1):
         
-        self.data   = data
+        self.data      = data
+        self.smoothing = smoothing
+        self.lambda1   = lambda1
+        self.lambda2   = lambda2
+        
         self.macwes = None
     
     def run(self, iterations=1000):
@@ -45,7 +49,10 @@ class Morphsnake(object):
         self.macwes = list()
         for frame, img in enumerate(self.data):
             # Set up the image
-            macwe = morphsnakes.MorphACWE(img, smoothing=1, lambda1=4, lambda2=1)
+            macwe = morphsnakes.MorphACWE(img, smoothing=self.smoothing ,\
+                                               lambda1=self.lambda1     ,\
+                                               lambda2=self.lambda2
+                                         )
             macwe.frame = frame
             
             x,y = np.where(img == np.min(img))
