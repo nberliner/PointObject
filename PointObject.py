@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 27 13:43:35 2015
+PointObject (https://github.com/nberliner/PointObject)
 
-@author: berliner
+An IPython Notebook based anlysis tool for point-localisation
+super-resolution data. 
+
+
+Author(s): Niklas Berliner (niklas.berliner@gmail.com)
+
+Copyright (C) 2015 Niklas Berliner
 """
 import os
 import numpy as np
@@ -136,7 +142,8 @@ class PointObject(IPyNotebookStyles):
         self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
         self.runCluster = True
     
-    def calculateContour(self, kernel='gaussian', bandwidth=30.0):
+    def calculateContour(self, kernel='gaussian', bandwidth=30.0, iterations=1500, 
+                         smoothing=1, lambda1=4, lambda2=1, kde=True, morph=True):
         """
         Initialise the contour calculation based on a 2D kernel density estimate.
         """
@@ -144,11 +151,18 @@ class PointObject(IPyNotebookStyles):
             print('You need to run the clustering first!')
             return
         
-        self.contour = Contour()
-        self.contour.setData( self.cluster.getResult() )
-        self.contour.calculateContour(kernel=kernel, bandwidth=bandwidth)
+        if kde:
+            self.contour = Contour()
+            self.contour.setData( self.cluster.getResult() )
+            self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
+        if morph:
+            self.contour.findContourMorph(iterations=iterations ,\
+                                          smoothing=smoothing   ,\
+                                          lambda1=lambda1       ,\
+                                          lambda2=lambda2
+                                          )
     
-    def calculateCurvature(self, smooth=True, window=2):
+    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False):
         """
         Initialise the curvature
         """
@@ -157,7 +171,7 @@ class PointObject(IPyNotebookStyles):
             return
         
         self.curvature = Curvature()
-        self.curvature.setData( self.contour.getResult() )
+        self.curvature.setData( self.contour.getResult(smoothed=smoothedContour) )
         self.curvature.calculateCurvature(smooth=smooth, window=window)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):

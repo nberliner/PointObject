@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 18 11:15:49 2015
+Part of PointObject (https://github.com/nberliner/PointObject)
 
-@author: berliner
+An IPython Notebook based anlysis tool for point-localisation
+super-resolution data. 
+
+
+Author(s): Niklas Berliner (niklas.berliner@gmail.com)
+
+Copyright (C) 2015 Niklas Berliner
 """
 import numpy as np
 import matplotlib as mpl
@@ -17,7 +23,9 @@ from mplWidgets import CurvatureSelector
 from HTMLtable import HTMLtable
 
 
-def curvature(x, y, sigma=2, absolute=False):
+# Should not be used. See issue #1 on the GitHub page
+def curvatureGaussianFilter(x, y, sigma=2, absolute=False):
+    warnings.warn("curvatureGaussianFilter should not be used. See issue #1 on the GitHub page.", DeprecationWarning)
     # Credit goes here: http://stackoverflow.com/a/28310758/1922650
     #first and second derivative
     x1 = gaussian_filter1d(x,  sigma=sigma, order=1, mode='wrap')
@@ -29,6 +37,69 @@ def curvature(x, y, sigma=2, absolute=False):
     else:
         return (x1*y2 - y1*x2) / np.power(x1**2 + y1**2, 3./2)
 
+
+def curvature(X, Y, absolute=False):
+    """ Calculate the curvature along path given by X and Y """
+    # Put the x and y coordinates together
+    X = X.reshape(-1,1)
+    Y = Y.reshape(-1,1)
+    XY = np.hstack((X,Y))
+    
+    # Calculate the first derivative
+    dxy = np.gradient(XY, edge_order=2)
+    dx = dxy[0][:,0]
+    dy = dxy[0][:,1]
+    
+    # Calculate the second derivative
+    ddxy = np.gradient(dxy[0], edge_order=2)
+    ddx = ddxy[0][:,0]
+    ddy = ddxy[0][:,1]
+    
+    c = (dx * ddy - dy * ddx) / np.power(np.power(dx,2) + np.power(dy,2),1.5)
+    if absolute:
+        return np.abs(c)
+    else:
+        return c
+
+
+### The following bit could be used to calculate the curvature based on the 
+### circumference radius. MIGHT BE BUGGY !!
+
+#def curvature(X, Y):
+#    """
+#    Calculate the radius at each point by finding the circumcircle radius.
+#    It wraps around, i.e. the first and last points use the end/start points as
+#    second neighbor.
+#    
+#    Input: np.arrays for X and X position data
+#    """
+#    radii = list()
+#    for i in range( len(X) ):
+#        # Select the three points, the code moves along the path from beginning to end
+#        try:
+#            x = np.array( ([X[i-1]], [X[i]], [X[i+1]]) )
+#            y = np.array( ([Y[i-1]], [Y[i]], [Y[i+1]]) )
+#        except IndexError:
+#            x = np.array( ([X[i-1]], [X[i]], [X[-1]]) )
+#            y = np.array( ([Y[i-1]], [Y[i]], [Y[-1]]) )
+##        x = X[i:i+3].reshape(-1,1)
+##        y = Y[i:i+3].reshape(-1,1)
+#        # Calculate the radius
+#        a,b,c = triangleSides(x, y)
+#        r = circumcircleRadius(a, b, c)
+#        radii.append(r)
+#        
+#    assert( len(radii) == len(X) )
+#    return 1./np.asarray(radii)
+#
+#def circumcircleRadius(a, b, c):
+#    return a*b*c / np.sqrt( (a+b+c)*(b+c-a)*(c+a-b)*(a+b+-c) )
+#    
+#def triangleSides(x, y):
+#    dist = distance.pdist( np.hstack((x,y)), metric='euclidean')
+#    return dist[0], dist[1], dist[2]
+
+### End circumference
 
 def averageCurvature(C, width, weight=None):
     # Check which weighting scheme should be applied
@@ -63,9 +134,38 @@ class Curvature(IPyNotebookStyles):
         self.dataCurvature = None
         
         # helpers to keep the curvature color consitent
-        self.curvatureMax = None
-        self.curvatureMin = None
+        self.curvatureMax = 0
+        self.curvatureMin = 0
         self.color        = None
+    
+    def test(self, radius=5.0, sampling=30, sigma=1):
+        # Generate the test data
+        alpha = np.linspace(-np.pi/2,np.pi/2, sampling)
+        X = radius*np.cos(alpha)
+        Y = radius*np.sin(alpha)
+        
+        # Calculate the radius from the curvature
+#        C = 1/curvature(X, Y, sigma=sigma)
+        R = 1/curvature(X, Y)
+        curvatureMax   = np.max(R)
+        curvatureMin   = np.min(R)
+        
+        color  = Color(scaleMin=curvatureMin, scaleMax=curvatureMax)
+        cColor = [ color(i) for i in R ]
+        
+        # Plot the test data color coded for curvature
+        fig = plt.figure(figsize=(14,7), dpi=120)
+        ax  = fig.add_subplot(121)
+        ax.set_title("Generated data")
+        ax.set_xlim( [-radius-1,radius+1] )
+        ax.set_ylim( [-radius-1,radius+1] )
+        ax.scatter(x=X, y=Y, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
+        
+        ax2 = fig.add_subplot(122)
+        ax2.set_title("Calculated curvature")
+        ax2.plot(R)
+        ax2.axhline(y=radius, color='red')
+        ax2.set_ylim([radius-1,radius+1])
     
     def setData(self, data):
         assert( isinstance( data, dict ) )
@@ -75,28 +175,40 @@ class Curvature(IPyNotebookStyles):
         pass
     
     def calculateCurvature(self, smooth=True, window=2):
+        # Calculate the curvature in each frame
         self.dataCurvature = dict()
-        for frame, ax in self._getFigure("Curvature calculation"):
-            # Calculate the curvature
+        for frame in self.data.keys():
             for contour in self.data[frame]:
+                # Do the calculation
                 XY     = contour.vertices
                 xc, yc = XY[:,0], XY[:,1]
                 Corig  = curvature(xc, yc)
-                Cavg   = averageCurvature(Corig, window, 'gaussian') # Aply an average based on a gaussian
+                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
                 
+                # Select the curvature
                 if smooth:
                     C = Cavg
                 else:
                     C = Corig
-                    
-                self.curvatureMax   = np.max(C)
-                self.curvatureMin   = np.min(C)
-                self.color          = Color(scaleMin=self.curvatureMin, scaleMax=self.curvatureMax)
-
-                self.dataCurvature.setdefault(frame, list()).append( (contour, C) )
                 
-                # PLot the curvature color coded
-                cColor = [ self.color(i) for i in C ]
+                # Check if we reached a new min or max
+                if np.max(C) >= self.curvatureMax:
+                    self.curvatureMax   = np.max(C)
+                if np.min(C) <= self.curvatureMin:
+                    self.curvatureMin   = np.min(C)
+                    
+                # Add the curvature to the dict()
+                self.dataCurvature.setdefault(frame, list()).append( (contour, C) )
+        
+        # Generate the color scale
+        self.color          = Color(scaleMin=self.curvatureMin, scaleMax=self.curvatureMax)
+        
+        # Plot the curvature result color coded
+        for frame, ax in self._getFigure("Curvature calculation"):
+            for contour, C in self.dataCurvature[frame]:
+                XY     = contour.vertices
+                xc, yc = XY[:,0], XY[:,1]
+                cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
     def selectCurvature(self):

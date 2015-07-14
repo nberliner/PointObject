@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 28 15:43:44 2015
+Part of PointObject (https://github.com/nberliner/PointObject)
 
-@author: berliner
+An IPython Notebook based anlysis tool for point-localisation
+super-resolution data. 
+
+
+Author(s): Niklas Berliner (niklas.berliner@gmail.com)
+
+Copyright (C) 2015 Niklas Berliner
 """
 
 import numpy as np
@@ -10,11 +16,15 @@ import matplotlib as mpl
 import matplotlib.pylab as plt
 
 from sklearn.neighbors.kde import KernelDensity
-from scipy.spatial import distance
+#from scipy.spatial import distance
 from skimage import measure
 
-from datetime import datetime
+from sklearn.grid_search import GridSearchCV
 
+from datetime import datetime
+import warnings
+
+from morphsnakesWrapper import Morphsnake
 from utils import *
 
 # Function definition to be used with parmap
@@ -30,7 +40,7 @@ def calculateKernelDensity(args):
         # Evaluate the kernel on the grid
         Z = kdf.score_samples(positions)
         Z = Z.reshape(Xgrid.shape) # put the result back into the grid shape
-        Z = remap0to1(Z) # map array to [0,1]
+#        Z = remap0to1(Z) # map array to [0,1]
     except:
         # For debugging puropses it helps to first create a NoneType error outside
         # the multiprocessing part. If an error occurs in the multiprocessing
@@ -76,7 +86,9 @@ class Contour(IPyNotebookStyles):
 
         if smoothed:
             if self.contourSmooth is None:
-                print('The smoothed contour was not calcualted yet. Was this desired?')
+                print('The smoothed contour was not calculated yet. Was this desired?')
+                print('Using the unsmoothed data!')
+                return self.contour
             return self.contourSmooth
         else:
             return self.contour
@@ -107,11 +119,9 @@ class Contour(IPyNotebookStyles):
         extend = [xmin, xmax, ymin, ymax]
 
         ## Create a grid with spacing of 5nm on which the kdf is evaluated
-#        nrPointsX = np.ceil( (xmax - xmin ) / 5.0 )
-#        nrPointsY = np.ceil( (ymax - ymin ) / 5.0 )
-        nrPointsX = np.ceil( (xmax - xmin ) / 50.0 )
+        nrPointsX = np.ceil( (xmax - xmin ) / 5.0 )
+        nrPointsY = np.ceil( (ymax - ymin ) / 5.0 )
 
-        nrPointsY = np.ceil( (ymax - ymin ) / 50.0 )
         xpos = np.linspace(xmin, xmax, nrPointsX, endpoint=True)
         ypos = np.linspace(ymin, ymax, nrPointsY, endpoint=True)
         
@@ -127,12 +137,14 @@ class Contour(IPyNotebookStyles):
         
         return positions, Xgrid, Ygrid, pixelSize, extend
     
-    def calculateContour(self, kernel='gaussian', bandwidth=30.0):
+    def kernelDensityEstimate(self, kernel='gaussian', bandwidth=None):
         """
         Calculate a kernel density estimate to obtain the contour lines
         of localisation data. Uses multiprocessing to run the estimate for each
         frame in parallel.
         """
+        assert( kernel in ['gaussian', 'tophat'] )
+        
         # Check if the data was already set
         if self.data is None:
             print('The data was not yet correctly set.')
@@ -145,10 +157,14 @@ class Contour(IPyNotebookStyles):
         XYData = [ self.data[frame][1] for frame in self.data ]
         
         positions, Xgrid, Ygrid, self.pixelSize, extend = self._getGridPositions(XYData)
-    
-        # Calculate the KernelDensity functions on multiple cores
-        kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend)  for frame, XY in enumerate(XYData, start=1) ] )
         
+        # Find the best parameters for kernel density estimate
+        if bandwidth is None:
+            bandwidth = self._optimiseBandwidth()
+    
+        # Calculate the KernelDensity functions and evaluate them on a grid on multiple cores
+        kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend)  for frame, XY in enumerate(XYData, start=1) ] )
+    
         # Convert the result into a dict for fast lookup
         self.kdfEstimate = { key: value for key, value in kdfEstimate }
         
@@ -157,7 +173,71 @@ class Contour(IPyNotebookStyles):
         print("Finished kernel density estimation in:", str(time)[:-7])
         return
     
-    def selectContour(self, level=0.995, minPathLength=80):
+    def _optimiseBandwidth(self, lower=15, upper=40, num=25, frame=1):
+        ## See https://jakevdp.github.io/blog/2013/12/01/kernel-density-estimation/
+        
+        # Create the parameter space that should be sampled
+        params = {'bandwidth': np.linspace(lower, upper, num=num, endpoint=True), \
+                  'algorithm': ['kd_tree',], \
+                  'kernel':    ['gaussian', ] }
+        
+        grid = GridSearchCV(KernelDensity(),
+                            params,
+                            cv=20,
+                            n_jobs=-1) # 20-fold cross-validation, multi core
+        
+        # Select the data from frame
+        XY = self.data[frame][1]
+        grid.fit(XY)
+        print("Using the estimated paramters:")
+        print(grid.best_params_)
+        
+        if grid.best_params_['bandwidth'] == lower or grid.best_params_['bandwidth'] == upper:
+            warnings.warn("Warning: see bandwidth parameter was estimated to be optimal at one sample boundary")
+            warnings.warn("Try shifting the sample window!")
+        
+        return grid.best_params_['bandwidth']
+    
+    
+    def findContourMorph(self, iterations=1500, smoothing=1, lambda1=4, lambda2=1):
+        # Set the calculation start time
+        startTime = datetime.now()
+        
+        # Set up the kernel density images which should be used
+        # The sklearn package for the Kernel Density Estimation returns the log
+        # of the likelyhood. We need to exponentiate the result before use.
+        imgs = [ np.exp(self.kdfEstimate[frame][1]) for frame in range(1,len(self.kdfEstimate)+1) ]
+        
+        # Set up the Morphsnake class and run the first iterations
+        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2)
+        self.morph.run(iterations)
+        
+        # We're done with caluclation, print some interesting messages
+        time = datetime.now()-startTime
+        print("Finished contour finding in:", str(time)[:-7])
+        return
+        
+        # Plot the result
+        self._plotMorph()
+    
+    def advanceContourMorph(self, iterations=500, frame=None):
+        # Run some more iterations
+        self.morph.advance(iterations=iterations, frame=frame)
+        
+        # Plot the result
+        self._plotMorph()
+    
+    def _plotMorph(self):
+        for frame, ax in self._getFigure("Morph"):
+            kernel, Z, Xgrid, Ygrid, extent = self.kdfEstimate[frame]
+            macwe = self.morph.macwes[frame-1]
+            
+            XY = self.data[frame][1]
+            ax.scatter(x=XY[:,0], y=XY[:,1])
+            ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
+    
+    
+    def selectContour(self, level=0.5, minPathLength=100):
         """
         Input:
           level           "Probability" level of the contour of type float
@@ -181,15 +261,16 @@ class Contour(IPyNotebookStyles):
             print('Kernel density not yet calculated. Run calculateContour() first')
             return
         
-        if level >= 1.0:
-            print('The selected level is too high. The density is mappd to [0,1].')
-            return
+#        if level >= 1.0:
+#            print('The selected level is too high. The density is mappd to [0,1].')
+#            return
 
         self.contour = dict()
         for frame, ax in self._getFigure("Contour levels at %.1f" %level):
             
             XY = self.data[frame][1]
-            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
+#            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
+            Z = self.morph.levelset(frame)
             
             contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
 
@@ -202,35 +283,35 @@ class Contour(IPyNotebookStyles):
 #                print('Y',np.max(Y),np.min(Y))
                 ax.plot(X, Y, color='red', linewidth=2)
             
-            ax.scatter(x=XY[:,0], y=XY[:,1])
+            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=1.5, alpha=0.5)
 
 
-    def checkContour(self, contourLevels=None, levelMax=None, line=False):
-        
-        if contourLevels is not None and levelMax is not None:
-            print('You can only specify contourLevels OR levelMax.')
-            return
-        
-        for frame, ax in self._getFigure("Calculated contours per frame"):
-            
-            XY = self.data[frame][1]
-            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
-            
-            if contourLevels is None and levelMax is None:
-                levels = np.linspace(0.95, 0.99, 5)
-            elif contourLevels is not None:
-                levels = contourLevels
-            else:
-                levelMax = float(levelMax)
-                levels = np.linspace((levelMax*Z.max())-0.1, levelMax*Z.max(), 2)
-            
-            if line:
-                ax.contour(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
-            else:
-                ax.contourf(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
-            
-            ax.scatter(x=XY[:,0], y=XY[:,1]);
-        return
+#    def checkContour(self, contourLevels=None, levelMax=None, line=False):
+#        
+#        if contourLevels is not None and levelMax is not None:
+#            print('You can only specify contourLevels OR levelMax.')
+#            return
+#        
+#        for frame, ax in self._getFigure("Calculated contours per frame"):
+#            
+#            XY = self.data[frame][1]
+#            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
+#            
+#            if contourLevels is None and levelMax is None:
+#                levels = np.linspace(0.95, 0.99, 5)
+#            elif contourLevels is not None:
+#                levels = contourLevels
+#            else:
+#                levelMax = float(levelMax)
+#                levels = np.linspace((levelMax*Z.max())-0.1, levelMax*Z.max(), 2)
+#            
+#            if line:
+#                ax.contour(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
+#            else:
+#                ax.contourf(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
+#            
+#            ax.scatter(x=XY[:,0], y=XY[:,1]);
+#        return
 
     def smoothContour(self, smoothWindow):
         if self.contour is None:

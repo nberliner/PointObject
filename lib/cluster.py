@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 28 18:29:00 2015
+Part of PointObject (https://github.com/nberliner/PointObject)
 
-@author: berliner
+An IPython Notebook based anlysis tool for point-localisation
+super-resolution data. 
+
+
+Author(s): Niklas Berliner (niklas.berliner@gmail.com)
+
+Copyright (C) 2015 Niklas Berliner
 """
 import numpy as np
 import matplotlib as mpl
@@ -54,12 +60,14 @@ class Cluster(IPyNotebookStyles):
         
         super(Cluster, self).__init__()
         
-        self.data       = None
-        self.dataROI    = None
-        self.dataFrame   = None
+        self.data         = None
+        self.dataROI      = None
+        self.dataFrame    = None
         self.clustersList = None
         self.clusterTable = None
-        self.clustering = None
+        self.clustering   = None
+        
+        self.dataROIselected = False
     
     def setData(self, dataFrame):
         assert( isinstance(dataFrame, DataFrame) )
@@ -70,10 +78,10 @@ class Cluster(IPyNotebookStyles):
             print('Please run the clustering first.')
             return
         
-        if self.dataROI is None:
-            return self.data
-        else:
+        if self.dataROIselected:
             return self.dataROI
+        else:
+            return self.data
     
     def _getFigure(self, title):
         nrFigs = len(self.data)
@@ -85,6 +93,9 @@ class Cluster(IPyNotebookStyles):
         if frame is None:
             frames = [ frameData for _, frameData in self.dataFrame.groupby('movieFrame') ]
         else:
+            if frame == 0:
+                print("Frame numbers start at 1! Setting frame=1")
+                frame = 1
             frames = [ self.dataFrame[ self.dataFrame.movieFrame==frame ], ]
         
         # First do the clustering on multiple cores
@@ -174,7 +185,8 @@ class Cluster(IPyNotebookStyles):
         
         # Convert the mito list into a dict for better lookup
         if frame is None:
-            self.data = self._selectClusters()
+            self.data    = self._selectClusters()
+            self.dataROI = deepcopy(self.data)
 
             print('\nYou selected the following clusters:')
             for frame, cluster in list(self.data.items()):
@@ -234,8 +246,6 @@ class Cluster(IPyNotebookStyles):
             assert( isinstance(frame, int) )
             frames = [frame, ]
         
-        if self.dataROI is None:
-            self.dataROI = dict()
         # Let the user select the ROI
         for frame in frames:
             # Get the ROI
@@ -252,6 +262,7 @@ class Cluster(IPyNotebookStyles):
             # Add the confined data
             self.dataROI[frame] = [clusters, XYdataCoreROI, XYdataEdgeROI]
     
+        self.dataROIselected = True
 #        print('Selected the structure in %i frames.' %frame)
     
     def _selectROI(self, frame):
@@ -288,7 +299,7 @@ class Cluster(IPyNotebookStyles):
 
         for frame, ax in self._getFigure("Selected clusters per frame"):
             
-            if self.dataROI is not None and not original:
+            if self.dataROIselected and not original:
                 _, XYdataCore, XYdataEdge = self.dataROI[frame]
             else:
                 _, XYdataCore, XYdataEdge = self.data[frame]
@@ -301,7 +312,7 @@ class Cluster(IPyNotebookStyles):
     
     def checkCluster(self, frame=1, s=4, xlim=False, ylim=False, original=False):
         # Get the data
-        if self.dataROI is not None and not original:
+        if self.dataROIselected and not original:
             _, XYdataCore, XYdataEdge = self.dataROI[frame]
         else:
             _, XYdataCore, XYdataEdge = self.data[frame]
