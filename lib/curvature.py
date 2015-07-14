@@ -23,7 +23,9 @@ from mplWidgets import CurvatureSelector
 from HTMLtable import HTMLtable
 
 
-def curvature(x, y, sigma=1, absolute=False):
+# Should not be used. See issue #1 on the GitHub page
+def curvatureGaussianFilter(x, y, sigma=2, absolute=False):
+    warnings.warn("curvatureGaussianFilter should not be used. See issue #1 on the GitHub page.", DeprecationWarning)
     # Credit goes here: http://stackoverflow.com/a/28310758/1922650
     #first and second derivative
     x1 = gaussian_filter1d(x,  sigma=sigma, order=1, mode='wrap')
@@ -35,6 +37,69 @@ def curvature(x, y, sigma=1, absolute=False):
     else:
         return (x1*y2 - y1*x2) / np.power(x1**2 + y1**2, 3./2)
 
+
+def curvature(X, Y, absolute=False):
+    """ Calculate the curvature along path given by X and Y """
+    # Put the x and y coordinates together
+    X = X.reshape(-1,1)
+    Y = Y.reshape(-1,1)
+    XY = np.hstack((X,Y))
+    
+    # Calculate the first derivative
+    dxy = np.gradient(XY, edge_order=2)
+    dx = dxy[0][:,0]
+    dy = dxy[0][:,1]
+    
+    # Calculate the second derivative
+    ddxy = np.gradient(dxy[0], edge_order=2)
+    ddx = ddxy[0][:,0]
+    ddy = ddxy[0][:,1]
+    
+    c = (dx * ddy - dy * ddx) / np.power(np.power(dx,2) + np.power(dy,2),1.5)
+    if absolute:
+        return np.abs(c)
+    else:
+        return c
+
+
+### The following bit could be used to calculate the curvature based on the 
+### circumference radius. MIGHT BE BUGGY !!
+
+#def curvature(X, Y):
+#    """
+#    Calculate the radius at each point by finding the circumcircle radius.
+#    It wraps around, i.e. the first and last points use the end/start points as
+#    second neighbor.
+#    
+#    Input: np.arrays for X and X position data
+#    """
+#    radii = list()
+#    for i in range( len(X) ):
+#        # Select the three points, the code moves along the path from beginning to end
+#        try:
+#            x = np.array( ([X[i-1]], [X[i]], [X[i+1]]) )
+#            y = np.array( ([Y[i-1]], [Y[i]], [Y[i+1]]) )
+#        except IndexError:
+#            x = np.array( ([X[i-1]], [X[i]], [X[-1]]) )
+#            y = np.array( ([Y[i-1]], [Y[i]], [Y[-1]]) )
+##        x = X[i:i+3].reshape(-1,1)
+##        y = Y[i:i+3].reshape(-1,1)
+#        # Calculate the radius
+#        a,b,c = triangleSides(x, y)
+#        r = circumcircleRadius(a, b, c)
+#        radii.append(r)
+#        
+#    assert( len(radii) == len(X) )
+#    return 1./np.asarray(radii)
+#
+#def circumcircleRadius(a, b, c):
+#    return a*b*c / np.sqrt( (a+b+c)*(b+c-a)*(c+a-b)*(a+b+-c) )
+#    
+#def triangleSides(x, y):
+#    dist = distance.pdist( np.hstack((x,y)), metric='euclidean')
+#    return dist[0], dist[1], dist[2]
+
+### End circumference
 
 def averageCurvature(C, width, weight=None):
     # Check which weighting scheme should be applied
@@ -80,12 +145,13 @@ class Curvature(IPyNotebookStyles):
         Y = radius*np.sin(alpha)
         
         # Calculate the radius from the curvature
-        C = 1/curvature(X, Y, sigma=sigma)
-        curvatureMax   = np.max(C)
-        curvatureMin   = np.min(C)
+#        C = 1/curvature(X, Y, sigma=sigma)
+        R = 1/curvature(X, Y)
+        curvatureMax   = np.max(R)
+        curvatureMin   = np.min(R)
         
         color  = Color(scaleMin=curvatureMin, scaleMax=curvatureMax)
-        cColor = [ color(i) for i in C ]
+        cColor = [ color(i) for i in R ]
         
         # Plot the test data color coded for curvature
         fig = plt.figure(figsize=(14,7), dpi=120)
@@ -96,8 +162,10 @@ class Curvature(IPyNotebookStyles):
         ax.scatter(x=X, y=Y, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
         
         ax2 = fig.add_subplot(122)
-        ax2.plot(C)
+        ax2.set_title("Calculated curvature")
+        ax2.plot(R)
         ax2.axhline(y=radius, color='red')
+        ax2.set_ylim([radius-1,radius+1])
     
     def setData(self, data):
         assert( isinstance( data, dict ) )
