@@ -162,7 +162,7 @@ class PointObject(IPyNotebookStyles):
                                           lambda2=lambda2
                                           )
     
-    def calculateCurvature(self, smooth=True, window=2):
+    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False):
         """
         Initialise the curvature
         """
@@ -171,7 +171,7 @@ class PointObject(IPyNotebookStyles):
             return
         
         self.curvature = Curvature()
-        self.curvature.setData( self.contour.getResult() )
+        self.curvature.setData( self.contour.getResult(smoothed=smoothedContour) )
         self.curvature.calculateCurvature(smooth=smooth, window=window)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):
