@@ -23,7 +23,7 @@ from mplWidgets import CurvatureSelector
 from HTMLtable import HTMLtable
 
 
-def curvature(x, y, sigma=2, absolute=False):
+def curvature(x, y, sigma=1, absolute=False):
     # Credit goes here: http://stackoverflow.com/a/28310758/1922650
     #first and second derivative
     x1 = gaussian_filter1d(x,  sigma=sigma, order=1, mode='wrap')
@@ -72,6 +72,32 @@ class Curvature(IPyNotebookStyles):
         self.curvatureMax = None
         self.curvatureMin = None
         self.color        = None
+    
+    def test(self, radius=5.0, sampling=30, sigma=1):
+        # Generate the test data
+        alpha = np.linspace(-np.pi/2,np.pi/2, sampling)
+        X = radius*np.cos(alpha)
+        Y = radius*np.sin(alpha)
+        
+        # Calculate the radius from the curvature
+        C = 1/curvature(X, Y, sigma=sigma)
+        curvatureMax   = np.max(C)
+        curvatureMin   = np.min(C)
+        
+        color  = Color(scaleMin=curvatureMin, scaleMax=curvatureMax)
+        cColor = [ color(i) for i in C ]
+        
+        # Plot the test data color coded for curvature
+        fig = plt.figure(figsize=(14,7), dpi=120)
+        ax  = fig.add_subplot(121)
+        ax.set_title("Generated data")
+        ax.set_xlim( [-radius-1,radius+1] )
+        ax.set_ylim( [-radius-1,radius+1] )
+        ax.scatter(x=X, y=Y, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
+        
+        ax2 = fig.add_subplot(122)
+        ax2.plot(C)
+        ax2.axhline(y=radius, color='red')
     
     def setData(self, data):
         assert( isinstance( data, dict ) )
