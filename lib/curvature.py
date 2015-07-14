@@ -134,8 +134,8 @@ class Curvature(IPyNotebookStyles):
         self.dataCurvature = None
         
         # helpers to keep the curvature color consitent
-        self.curvatureMax = None
-        self.curvatureMin = None
+        self.curvatureMax = 0
+        self.curvatureMin = 0
         self.color        = None
     
     def test(self, radius=5.0, sampling=30, sigma=1):
@@ -175,28 +175,40 @@ class Curvature(IPyNotebookStyles):
         pass
     
     def calculateCurvature(self, smooth=True, window=2):
+        # Calculate the curvature in each frame
         self.dataCurvature = dict()
-        for frame, ax in self._getFigure("Curvature calculation"):
-            # Calculate the curvature
+        for frame in self.data.keys():
             for contour in self.data[frame]:
+                # Do the calculation
                 XY     = contour.vertices
                 xc, yc = XY[:,0], XY[:,1]
                 Corig  = curvature(xc, yc)
-                Cavg   = averageCurvature(Corig, window, 'gaussian') # Aply an average based on a gaussian
+                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
                 
+                # Select the curvature
                 if smooth:
                     C = Cavg
                 else:
                     C = Corig
-                    
-                self.curvatureMax   = np.max(C)
-                self.curvatureMin   = np.min(C)
-                self.color          = Color(scaleMin=self.curvatureMin, scaleMax=self.curvatureMax)
-
-                self.dataCurvature.setdefault(frame, list()).append( (contour, C) )
                 
-                # PLot the curvature color coded
-                cColor = [ self.color(i) for i in C ]
+                # Check if we reached a new min or max
+                if np.max(C) >= self.curvatureMax:
+                    self.curvatureMax   = np.max(C)
+                if np.min(C) <= self.curvatureMin:
+                    self.curvatureMin   = np.min(C)
+                    
+                # Add the curvature to the dict()
+                self.dataCurvature.setdefault(frame, list()).append( (contour, C) )
+        
+        # Generate the color scale
+        self.color          = Color(scaleMin=self.curvatureMin, scaleMax=self.curvatureMax)
+        
+        # Plot the curvature result color coded
+        for frame, ax in self._getFigure("Curvature calculation"):
+            for contour, C in self.dataCurvature[frame]:
+                XY     = contour.vertices
+                xc, yc = XY[:,0], XY[:,1]
+                cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
     def selectCurvature(self):
