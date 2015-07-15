@@ -306,7 +306,21 @@ class Cluster(IPyNotebookStyles):
         return lman.collection
 
  
-    def showClusters(self, original=False):
+    def showClusters(self, s=2, original=False):
+        """
+        Plot the selected clusters of **all** frames.
+        
+        After the cluster() function has been called the selected clusters of
+        all frames can investigated. Core points of DBSCAN will be blue,
+        edge points of the cluster will be red.
+        
+        Input:
+            s (int):          Size of the scatter points
+            
+            original (bool):  If set to True show the full field of view. 
+                              Limits the plot to the ROI otherwise if one is set.
+        
+        """
 
         for frame, ax in self._getFigure("Selected clusters per frame"):
             
@@ -315,13 +329,33 @@ class Cluster(IPyNotebookStyles):
             else:
                 _, XYdataCore, XYdataEdge = self.data[frame]
 
-            ax.scatter(x=XYdataCore[:,0], y=XYdataCore[:,1], edgecolor='none', facecolor='blue', s=2)
+            ax.scatter(x=XYdataCore[:,0], y=XYdataCore[:,1], edgecolor='none', facecolor='blue', s=s)
+            ax.scatter(x=XYdataEdge[:,0], y=XYdataEdge[:,1], edgecolor='none', facecolor='red',  s=s-1)
         
         plt.show()
-        print('\nYou can look at idividual clusters with checkCluster(frame)')
     
     
     def checkCluster(self, frame=1, s=4, xlim=False, ylim=False, original=False):
+        """
+        Plot the selected clusters of individual frames
+        
+        Works like showClusters() but limits the plot to the selected frame.
+        Allows additional restriction to user specified region to investigate
+        the clustering result in more detail.
+        
+        Input:
+            frame (int):      The frame that should be plotted
+            
+            s (int):          Size of the scatter points
+            
+            xlim (list):      The limits of the x axis
+            
+            ylim (list):      The limits of the y axis
+            
+            original (bool):  If set to True show the full field of view. 
+                              Limits the plot to the ROI otherwise if one is set
+                              
+        """
         # Get the data
         if self.dataROIselected and not original:
             _, XYdataCore, XYdataEdge = self.dataROI[frame]
