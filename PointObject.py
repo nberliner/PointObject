@@ -169,7 +169,7 @@ class PointObject(IPyNotebookStyles):
         self.runCluster = True # set the cluster flag so that subsequent calls now it was run
     
     def calculateContour(self, kernel='gaussian', bandwidth=None, iterations=1500, 
-                         smoothing=1, lambda1=4, lambda2=1, kde=True, morph=True):
+                         smoothing=2, lambda1=1, lambda2=1, kde=True, morph=True):
         """
         Contour finding based on a 2D kernel density estimate.and contour fitting.
 
