@@ -50,6 +50,7 @@ class PointObject(IPyNotebookStyles):
         
         self.movieMade  = False
         self.runCluster = False
+        self.edgePoints = True
         
         self.ROIedges = None
         
@@ -178,7 +179,7 @@ class PointObject(IPyNotebookStyles):
         
         if kde:
             self.contour = Contour()
-            self.contour.setData( self.cluster.getResult() )
+            self.contour.setData( self.cluster.getResult(self.edgePoints) )
             self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
         if morph:
             self.contour.findContourMorph(iterations=iterations ,\
