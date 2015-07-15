@@ -113,7 +113,10 @@ class Cluster(IPyNotebookStyles):
 
             # Show a plot of detected clusters
             fig = plt.figure(figsize=self.singleFigure)
-            fig.suptitle('Frame %d \n Estimated number of clusters: %d' %(frameNr, n_clusters_), size=self.figTitleSize)
+            if frame is None:
+                fig.suptitle('Frame %d \n Estimated number of clusters: %d' %(frameNr, n_clusters_), size=self.figTitleSize)
+            else:
+                fig.suptitle('Frame %d \n Estimated number of clusters: %d' %(frame, n_clusters_), size=self.figTitleSize)
             ax = fig.add_subplot(111)  
             legend_patches = list()
             
