@@ -203,6 +203,23 @@ class PointObject(IPyNotebookStyles):
         Bin the localisations into frames. Sampling density can be controlled
         by selecting the number of frames that should be grouped.
         
+        Imaging live objects implies that the object moves and changes during
+        acquisiton time. By selecting a time gap (i.e. nrFrames) in which the
+        object can be assumed to be static, a snapshot at this "time point" can
+        be generated and a super-resolution image can be created. To increase
+        the temporal "resolution" stepSize can be specified which is the gap
+        between the first frames of consecutive movie frames. If the stepSize
+        is smaller than nrFrames there will consequently an overlap of data
+        between consecutive points. This will however, effectivly increase the
+        frames/sec of the movie that will be produced and will increase the
+        chance of resolving the event of interest.
+        
+        Here a brief schematic of the movie frame generation:
+        
+            -------------------------------------------- (frames)
+            | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |   |    (movie frames without overlap)
+              |   |   |   |   |   |   |   |   |   |   |  (additional movie frames due to overlap)
+        
         Input:
           nrFrames     How long should one movie frame be, i.e. number 
                        of original TIFF frames
