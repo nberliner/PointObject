@@ -55,15 +55,27 @@ class Cluster(IPyNotebookStyles):
         assert( isinstance(dataFrame, DataFrame) )
         self.dataFrame = dataFrame
     
-    def getResult(self):
+    def getResult(self, edgePoints=True):
         if self.clustering is None:
             print('Please run the clustering first.')
             return
         
         if self.dataROIselected:
-            return self.dataROI
+            if edgePoints:
+                return self._edgePoints(self.dataROI)
+            else:
+                return self.dataROI[1]
         else:
-            return self.data
+            if edgePoints:
+                return self._edgePoints(self.data)
+            else:
+                return self.data[1]
+    
+    def _edgePoints(self, data):
+        newData = dict()
+        for frame, [_, XYcore, XYedge] in data.iter():
+            newData[frame] = np.concatenate((XYcore, XYedge))
+        return newData
     
     def _getFigure(self, title):
         nrFigs = len(self.data)
