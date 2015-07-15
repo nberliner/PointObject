@@ -56,6 +56,13 @@ class Cluster(IPyNotebookStyles):
         self.dataFrame = dataFrame
     
     def getResult(self, edgePoints=True):
+        """
+        Return the x,y localisation position after clustering
+        
+        Input:
+            edgePoints (bool):  If True returns DBSCAN core as well as edge points
+                                returns only core points otherwise.
+        """
         if self.clustering is None:
             print('Please run the clustering first.')
             return
