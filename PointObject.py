@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pylab as plt
 import pickle as pickle
+import warnings
 
 from pandas   import DataFrame
 from datetime import datetime
@@ -273,7 +274,25 @@ class PointObject(IPyNotebookStyles):
         m.make(fname)
     
     def setFOV(self, frame=1, convert=True):
-        """ Show the initial frame to set a FOV wich should be used. """
+        """
+        Depreceated. Please use setROI() instead!
+        
+        Only kept for backwards compatibility
+        """
+        warnings.warn("Depreceated. Please use setROI() instead!", DeprecationWarning)
+        self.setROI(frame=frame, convert=convert)
+        
+    def setROI(self, frame=1, convert=True):
+        """
+        Use one frame to set a ROI for further analysis.
+        
+        Note: Cannot be used with %pylab inline
+        
+        Input:
+            frame   (int):   Frame number that will be used to select the ROI
+            convert (bool):  Do set the selected ROI as new data
+        
+        """
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
             print('Switch to the Qt backend first by executing "%pylab qt"')
