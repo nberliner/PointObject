@@ -325,7 +325,10 @@ class Cluster(IPyNotebookStyles):
                               Limits the plot to the ROI otherwise if one is set.
         
         """
-
+        if self.data is None:
+            print("You need to run the clustering first.")
+            return
+        
         for frame, ax in self._getFigure("Selected clusters per frame"):
             
             if self.dataROIselected and not original:
