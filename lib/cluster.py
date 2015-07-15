@@ -346,7 +346,7 @@ class Cluster(IPyNotebookStyles):
         
         # Create the figure
         fig = plt.figure(figsize=self.singleFigureLarge)
-        fig.suptitle("Mitochondria clusters in frame %d" %frame, size=self.figTitleSize)
+        fig.suptitle("Selected localisations in frame %d" %frame, size=self.figTitleSize)
         ax = fig.add_subplot(111)
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
