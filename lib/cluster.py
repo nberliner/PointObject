@@ -211,18 +211,18 @@ class Cluster(IPyNotebookStyles):
             core_samples_mask[db.core_sample_indices_] = True
             
             # Select the user selected clusters
-            XYmitoCore = list()
-            XYmitoEdge = list()
+            XYdataCore = list()
+            XYdataEdge = list()
             c = deepcopy(clusterIDs.strip())
             for k in c.split(' '):
                 class_member_mask = (db.labels_ == int(k))
-                XYmitoCore.append( XY[class_member_mask & core_samples_mask]  )
-                XYmitoEdge.append( XY[class_member_mask & ~core_samples_mask] )
+                XYdataCore.append( XY[class_member_mask & core_samples_mask]  )
+                XYdataEdge.append( XY[class_member_mask & ~core_samples_mask] )
             
-            XYmitoCore = np.concatenate(XYmitoCore, axis=0)
-            XYmitoEdge = np.concatenate(XYmitoEdge, axis=0)
+            XYdataCore = np.concatenate(XYdataCore, axis=0)
+            XYdataEdge = np.concatenate(XYdataEdge, axis=0)
             
-            _data[frame] = (clusterIDs, XYmitoCore, XYmitoEdge)
+            _data[frame] = (clusterIDs, XYdataCore, XYdataEdge)
         
         return _data
             
