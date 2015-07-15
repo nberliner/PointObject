@@ -134,14 +134,38 @@ class PointObject(IPyNotebookStyles):
     
     def clusterData(self, eps, min_samples, frame=None, clusterSizeFiler=50, askUser=True):
         """
-        Initialisation of data clustering. After selecting the FOV, this
-        step runs the first clustering step and is necessary to extract the
-        object of interest from the total data points.
+        Run DBSCAN to identify the objects of interest and supress noise.
+        
+        
+        The density based clustering algorithm DBSCAN is used to cluster the
+        point localisations within each movie frame. The user is then asked to
+        select the clusters that correspond to the object of interest (multiple
+        selections are allowed) and the selection will be kept and used for
+        future calculations.
+        
+        Each movie frame will be run on one CPU core thus making use of multi-core
+        systems. The user can restrict the frames that should be computed to
+        optimse the clustering parameters.
+        
+        Input:
+            eps (float):       The eps parameter of the sklearn DBSCAN implementation
+            
+            min_samples (int): The min_samples parameter of the sklearn DBSCAN implementation
+                               For more details on the implementation see: http://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html
+            
+            frame (int,None):  If not None specifies the frame that should used
+            
+            clusterSizeFiler (int): Display filter for small clusters. CLusters
+                                    below the specified size will not be displayed
+                                    
+            askUser (bool):    Whether or not prompt the user to select the clusters
+        
+        
         """
-        self.cluster = Cluster()
+        self.cluster = Cluster() # initialise the cluster object
         self.cluster.setData(self.dataFrame)
         self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
-        self.runCluster = True
+        self.runCluster = True # set the cluster flag so that subsequent calls now it was run
     
     def calculateContour(self, kernel='gaussian', bandwidth=30.0, iterations=1500, 
                          smoothing=1, lambda1=4, lambda2=1, kde=True, morph=True):
