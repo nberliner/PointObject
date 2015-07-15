@@ -177,7 +177,12 @@ class Cluster(IPyNotebookStyles):
             
             if frame is None and askUser:
                 keep = input("Which cluster(s) to keep? Please type integer value(s) ")
-                if keep == "":
+                # Check the user input
+                while keep == "" or not self._integerInput(keep):
+                    print("Input not understood or no cluster to be selected.")
+                    print("Confirm with 'OK' or enter clusters to select.")
+                    keep = input("Which cluster(s) to keep? Please type integer value(s) ")
+                if keep.lower() == 'ok':
                     pass
                 else:
                     self.clustersList.append(keep)
@@ -194,6 +199,13 @@ class Cluster(IPyNotebookStyles):
             print('\nUse checkClusters()   to verify the cluster assignment.')
             print('Use confineClusters() to select the ROI for each cluster.')
     
+    def _integerInput(self, string):
+        """ Return True if the input string can be separated into integer values """
+        try:
+            [ int(item) for item in string.split(' ') ]
+            return True
+        except:
+            return False
     
     def _selectClusters(self):
         assert( self.clustering is not None )
