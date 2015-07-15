@@ -168,10 +168,58 @@ class PointObject(IPyNotebookStyles):
         self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
         self.runCluster = True # set the cluster flag so that subsequent calls now it was run
     
-    def calculateContour(self, kernel='gaussian', bandwidth=30.0, iterations=1500, 
+    def calculateContour(self, kernel='gaussian', bandwidth=None, iterations=1500, 
                          smoothing=1, lambda1=4, lambda2=1, kde=True, morph=True):
         """
-        Initialise the contour calculation based on a 2D kernel density estimate.
+        Contour finding based on a 2D kernel density estimate.and contour fitting.
+
+        
+        Find the contour of the selected point localisations. This is done in two
+        steps. The first step is to generate a high-resolution "image" of the
+        localisations. The second step is to find the contour via a morphological
+        contour fitting algorithm (https://github.com/pmneila/morphsnakes).
+
+        If no bandwidth is specified an optimal bandwidth parameter is estimated
+        using cross-validation. This is the default behaviour.
+        
+        The contour fitting is controlled using three parameters, i.e. smoothing,
+        lamda1, and lambda2. Here the description given in the original source code
+        smoothing : scalar
+            The number of repetitions of the smoothing step (the
+            curv operator) in each iteration. In other terms,
+            this is the strength of the smoothing. This is the
+            parameter µ.
+        lambda1, lambda2 : scalars
+            Relative importance of the inside pixels (lambda1)
+            against the outside pixels (lambda2).
+        Furthermore the parameter iterations is used to select the number of
+        iterations the contour fitting should run. If it did not converge yet,
+        further steps might be excecuted by calling contour.advanceContourMorph()
+        
+        
+        Input:
+            kernel (str):  Kernel to be used for the kernel density estimation
+                           Possible values are 'gaussian' (default) and 'tophat'
+            
+            bandwidth (float,None):  The bandwidth for the kernel density estimation
+                                     If set to None cross-validation will be used
+                                     to find the optimal parameter.
+            
+            iterations (int):  Number of steps the morphological contour fitting
+                               algorithm should advance.
+            
+            smoothing (scalar):  See above
+
+            lambda1 (scalar):    See above
+
+            lambda2 (scalar):    See above
+            
+            kde (bool):  Run Kernel Density Estimation. Set to False if
+                         calculateContour() has already been run and only the
+                         contour fitting should be repeated.
+            
+            morph (bool):  Run the morphological contour fitting
+            
         """
         if not self.runCluster:
             print('You need to run the clustering first!')
