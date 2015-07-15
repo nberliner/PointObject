@@ -196,8 +196,7 @@ class Cluster(IPyNotebookStyles):
             print('\nYou selected the following clusters:')
             for frame, cluster in list(self.data.items()):
                 print('Frame %d: %s' %(frame, cluster[0]))
-            print('\nUse checkClusters()   to verify the cluster assignment.')
-            print('Use confineClusters() to select the ROI for each cluster.')
+
     
     def _integerInput(self, string):
         """ Return True if the input string can be separated into integer values """
