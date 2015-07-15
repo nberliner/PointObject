@@ -237,7 +237,7 @@ class Contour(IPyNotebookStyles):
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
     
     
-    def selectContour(self, level=0.5, minPathLength=100):
+    def selectContour(self, level=0.5, minPathLength=100, xlim=False, ylim=False):
         """
         Input:
           level           "Probability" level of the contour of type float
@@ -260,13 +260,16 @@ class Contour(IPyNotebookStyles):
         if self.kdfEstimate is None:
             print('Kernel density not yet calculated. Run calculateContour() first')
             return
-        
-#        if level >= 1.0:
-#            print('The selected level is too high. The density is mappd to [0,1].')
-#            return
 
         self.contour = dict()
         for frame, ax in self._getFigure("Contour levels at %.1f" %level):
+            # Set the axes limits
+            if xlim:
+                assert( isinstance(xlim, list) and len(xlim) == 2 )
+                ax.set_xlim(xlim)
+            if ylim:
+                assert( isinstance(ylim, list) and len(ylim) == 2 )
+                ax.set_ylim(ylim)
             
             XY = self.data[frame]
 #            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
@@ -286,32 +289,45 @@ class Contour(IPyNotebookStyles):
             ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=1.5, alpha=0.5)
 
 
-#    def checkContour(self, contourLevels=None, levelMax=None, line=False):
-#        
-#        if contourLevels is not None and levelMax is not None:
-#            print('You can only specify contourLevels OR levelMax.')
-#            return
-#        
-#        for frame, ax in self._getFigure("Calculated contours per frame"):
-#            
-#            XY = self.data[frame][1]
-#            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
-#            
-#            if contourLevels is None and levelMax is None:
-#                levels = np.linspace(0.95, 0.99, 5)
-#            elif contourLevels is not None:
-#                levels = contourLevels
-#            else:
-#                levelMax = float(levelMax)
-#                levels = np.linspace((levelMax*Z.max())-0.1, levelMax*Z.max(), 2)
-#            
-#            if line:
-#                ax.contour(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
-#            else:
-#                ax.contourf(Xgrid, Ygrid, Z, levels=levels, cmap=plt.cm.Reds, extent=extend, aspect='auto')
-#            
-#            ax.scatter(x=XY[:,0], y=XY[:,1]);
-#        return
+    def checkContour(self, frame, level=0.5, minPathLength=100, \
+                     xlim=False, ylim=False, s=2, lw=2, alpha=0.7, useSmoothed=True):
+        
+        if self.kdfEstimate is None:
+            print('Kernel density not yet calculated. Run calculateContour() first')
+            return
+        
+        # Create the figure
+        fig = plt.figure(figsize=self.singleFigureLarge)
+        fig.suptitle("Selected contour in frame %d" %frame, size=self.figTitleSize)
+        ax = fig.add_subplot(111)
+        ax.set_xlabel("x position in nm", size=self.axesLabelSize)
+        ax.set_ylabel("y position in nm", size=self.axesLabelSize)
+        
+        # Set the axes limits
+        if xlim:
+            assert( isinstance(xlim, list) and len(xlim) == 2 )
+            ax.set_xlim(xlim)
+        if ylim:
+            assert( isinstance(ylim, list) and len(ylim) == 2 )
+            ax.set_ylim(ylim)
+
+        if s == 1: # Make sure that the size is not set to zero
+            s = 2
+        
+        XY = self.data[frame]
+        Z = self.morph.levelset(frame)
+        
+        if useSmoothed:
+            contours = self.contourSmooth[frame]
+        else:
+            contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
+
+        for cont in contours:
+            X = cont.vertices[:, 0]
+            Y = cont.vertices[:, 1]
+            ax.plot(X, Y, color='red', linewidth=lw)
+        
+        ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
 
     def smoothContour(self, smoothWindow):
         if self.contour is None:
