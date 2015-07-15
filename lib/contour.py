@@ -154,7 +154,7 @@ class Contour(IPyNotebookStyles):
         startTime = datetime.now()
         
         # Get the data
-        XYData = [ self.data[frame][1] for frame in self.data ]
+        XYData = [ self.data[frame] for frame in self.data ]
         
         positions, Xgrid, Ygrid, self.pixelSize, extend = self._getGridPositions(XYData)
         
@@ -187,7 +187,7 @@ class Contour(IPyNotebookStyles):
                             n_jobs=-1) # 20-fold cross-validation, multi core
         
         # Select the data from frame
-        XY = self.data[frame][1]
+        XY = self.data[frame]
         grid.fit(XY)
         print("Using the estimated paramters:")
         print(grid.best_params_)
@@ -232,7 +232,7 @@ class Contour(IPyNotebookStyles):
             kernel, Z, Xgrid, Ygrid, extent = self.kdfEstimate[frame]
             macwe = self.morph.macwes[frame-1]
             
-            XY = self.data[frame][1]
+            XY = self.data[frame]
             ax.scatter(x=XY[:,0], y=XY[:,1])
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
     
@@ -268,7 +268,7 @@ class Contour(IPyNotebookStyles):
         self.contour = dict()
         for frame, ax in self._getFigure("Contour levels at %.1f" %level):
             
-            XY = self.data[frame][1]
+            XY = self.data[frame]
 #            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
             Z = self.morph.levelset(frame)
             

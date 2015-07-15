@@ -80,7 +80,7 @@ class Cluster(IPyNotebookStyles):
     
     def _edgePoints(self, data):
         newData = dict()
-        for frame, [_, XYcore, XYedge] in data.iter():
+        for frame, [_, XYcore, XYedge] in data.items():
             newData[frame] = np.concatenate((XYcore, XYedge))
         return newData
     
