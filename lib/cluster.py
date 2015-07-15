@@ -329,6 +329,9 @@ class Cluster(IPyNotebookStyles):
             print("You need to run the clustering first.")
             return
         
+        if s == 1: # Make sure that the size is not set to zero
+            s = 2
+        
         for frame, ax in self._getFigure("Selected clusters per frame"):
             
             if self.dataROIselected and not original:
