@@ -356,7 +356,9 @@ class Curvature(IPyNotebookStyles):
     
     
     def plotCurvature(self):
-        
+        """
+        Plot the curvature progression of the selected contour regions.
+        """
         title = "Curvature progression"
         figs = getFigure(title, 2, self.doubleFigure, self.figTitleSize, self.axesLabelSize)
         
