@@ -248,7 +248,7 @@ class Contour(IPyNotebookStyles):
             macwe = self.morph.macwes[frame-1]
             
             XY = self.data[frame]
-            ax.scatter(x=XY[:,0], y=XY[:,1])
+            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=10, alpha=0.8)
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
     
     def findFittingParameters(self, frame, smoothing, lambda1, lambda2, iteration=1000, \
