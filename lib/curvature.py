@@ -103,7 +103,7 @@ def curvature(X, Y, absolute=False):
 
 def averageCurvature(C, width, weight=None):
     # Check which weighting scheme should be applied
-    if weight == None or weight.lower() == 'none':
+    if weight is None or weight.lower() == 'none':
         gfunc = lambda x, center: 1
     elif weight == 'gaussian':
         gfunc = lambda x, center: 1.0 * np.exp( - np.power(x-center,2) / (2.0*np.power(width,2)) )
