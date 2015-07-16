@@ -229,7 +229,7 @@ class Contour(IPyNotebookStyles):
         
         # We're done with caluclation, print some interesting messages
         time = datetime.now()-startTime
-        print("Finished contour finding in:", str(time)[:-7])
+        print("Finished contour fitting in:", str(time)[:-7])
         return
         
         # Plot the result
@@ -324,7 +324,7 @@ class Contour(IPyNotebookStyles):
         
         # We're done with caluclation, print some interesting messages
         time = datetime.now()-startTime
-        print("Finished contour calculation in:", str(time)[:-7])
+        print("Finished contour parameter screen:", str(time)[:-7])
         return
         
     
