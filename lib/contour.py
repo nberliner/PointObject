@@ -224,17 +224,17 @@ class Contour(IPyNotebookStyles):
         imgs = [ np.exp(self.kdfEstimate[frame][1]) for frame in range(1,len(self.kdfEstimate)+1) ]
         
         # Set up the Morphsnake class and run the first iterations
-        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2)
-        self.morph.run(iterations)
+        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2, iterations)
+        self.morph.run()
+        
+        # Plot the result
+        self._plotMorph()
         
         # We're done with caluclation, print some interesting messages
         time = datetime.now()-startTime
         print("Finished contour fitting in:", str(time)[:-7])
         return
-        
-        # Plot the result
-        self._plotMorph()
-    
+
     def advanceContourMorph(self, iterations=500, frame=None):
         # Run some more iterations
         self.morph.advance(iterations=iterations, frame=frame)
