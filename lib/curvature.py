@@ -233,6 +233,25 @@ class Curvature(IPyNotebookStyles):
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
     def selectCurvature(self, xlim=False, ylim=False):
+        """
+        Let the user select the part of the contour that will be used for
+        curvature measure.
+        
+        Note: requires user interaction and cannot be run in IPython inline mode
+        
+        It is important to be consistent with the way each side of the object
+        is selected. Always start at the same side! If not, the analysis of the
+        curvature value over time will be incorrect! See also showSelected()
+        for more information.
+        
+        
+        Input:
+            xlim (list):       Limit the x range of the plot. Must be list of
+                               length 2 with lower limit as first value and
+                               upper limit as second value.
+            
+            ylim (list):       Limit the y range of the plot. (see also xlim)
+        """
 
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
