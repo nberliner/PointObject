@@ -14,7 +14,6 @@ import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pylab as plt
-import pickle as pickle
 import warnings
 
 from pandas   import DataFrame
