@@ -322,10 +322,10 @@ class Contour(IPyNotebookStyles):
     def _plotOptimise(self, frame, scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
         for idx, ax in self._getFigure("Contour fitting parameters", len(self.macweOptimise)):
             # Set the title
-            s  = self.macweOptimise[idx-1].smoothing
+            sm  = self.macweOptimise[idx-1].smoothing
             l1 = self.macweOptimise[idx-1].lambda1
             l2 = self.macweOptimise[idx-1].lambda2
-            ax.set_title("smoothing: %d, lambda1: %d, lambda2: %d" %(s, l1, l2) )
+            ax.set_title("smoothing: %d, lambda1: %d, lambda2: %d" %(sm, l1, l2) )
             
             
             # Get the data
