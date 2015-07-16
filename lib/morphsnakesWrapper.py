@@ -25,7 +25,7 @@ def circle_levelset(shape, center, sqradius, scalerow=1.0):
 
 class Morphsnake(object):
     
-    def __init__(self, data, smoothing=1, lambda1=1, lambda2=1):
+    def __init__(self, data, smoothing=1, lambda1=1, lambda2=1, iterations=1500):
         
         self.data       = data
         self.smoothing  = smoothing
