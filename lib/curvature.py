@@ -224,21 +224,36 @@ class Curvature(IPyNotebookStyles):
             self.contourSelected.setdefault(frame, list()).append( (1, self._getLineLength(frame, x1, y1, x2, y2 )) )
             self.contourSelected.setdefault(frame, list()).append( (2, self._getLineLength(frame, x3, y3, x4, y4 )) )
     
-    def showSelected(self):
+    def showSelected(self, xlim=False, ylim=False, s=10):
         for frame, ax in self._getFigure("Curvature selection"):
+            # Set the axes limits
+            if xlim:
+                assert( isinstance(xlim, list) and len(xlim) == 2 )
+                ax.set_xlim(xlim)
+            if ylim:
+                assert( isinstance(ylim, list) and len(ylim) == 2 )
+                ax.set_ylim(ylim)
+            
+            # Plot the full curvature
+            for contour in self.data[frame]:
+                XY     = contour.vertices
+                xc, yc = XY[:,0], XY[:,1]
+                ax.scatter(x=xc, y=yc, facecolor='grey', edgecolor='none', s=np.ceil(s/2.0), alpha=0.8)
+            
+            # Plot the selected curvature
             for index, (contour, C, (x1, y1, x2, y2), pc1, pc2) in self.contourSelected[frame]:
                 XY = contour.vertices
                 (xc1, yc1) = pc1
                 (xc2, yc2) = pc2
                 cColor = [ self.color(i) for i in C ]
-                ax.scatter(x=XY[:,0], y=XY[:,1], c=cColor, alpha=0.8, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
+                ax.scatter(x=XY[:,0], y=XY[:,1], c=cColor, alpha=0.8, edgecolor='none', s=s, cmap=plt.cm.seismic_r)
                 
                 self._placeText(index, ax, pc1, pc2)
                 
-                ax.scatter(x=x1, y=y1, c='red', alpha=0.8, edgecolor='none', s=30, cmap=plt.cm.seismic_r)
-                ax.scatter(x=x2, y=y2, c='red', alpha=0.8, edgecolor='none', s=30, cmap=plt.cm.seismic_r)
-                ax.scatter(x=xc1, y=yc1, facecolor='none', alpha=0.8, edgecolor='blue', s=30, cmap=plt.cm.seismic_r)
-                ax.scatter(x=xc2, y=yc2, facecolor='none', alpha=0.8, edgecolor='blue', s=30, cmap=plt.cm.seismic_r)
+                ax.scatter(x=x1, y=y1, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
+                ax.scatter(x=x2, y=y2, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
+                ax.scatter(x=xc1, y=yc1, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
+                ax.scatter(x=xc2, y=yc2, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
     
     
     def table(self):
