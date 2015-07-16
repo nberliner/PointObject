@@ -405,8 +405,9 @@ class Contour(IPyNotebookStyles):
             ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=1.5, alpha=0.5)
 
 
-    def checkContour(self, frame, level=0.5, minPathLength=100, \
+    def checkContour(self, frame, level=0.5, minPathLength=100, scatter=True, image=True, \
                      xlim=False, ylim=False, s=2, lw=2, alpha=0.7, useSmoothed=True):
+        
         
         if self.kdfEstimate is None:
             print('Kernel density not yet calculated. Run calculateContour() first')
@@ -418,14 +419,6 @@ class Contour(IPyNotebookStyles):
         ax = fig.add_subplot(111)
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
-        
-        # Set the axes limits
-        if xlim:
-            assert( isinstance(xlim, list) and len(xlim) == 2 )
-            ax.set_xlim(xlim)
-        if ylim:
-            assert( isinstance(ylim, list) and len(ylim) == 2 )
-            ax.set_ylim(ylim)
 
         if s == 1: # Make sure that the size is not set to zero
             s = 2
@@ -443,7 +436,20 @@ class Contour(IPyNotebookStyles):
             Y = cont.vertices[:, 1]
             ax.plot(X, Y, color='red', linewidth=lw)
         
-        ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
+        if scatter:
+            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
+        
+        if image:
+            _, img, _, _, extent = self.kdfEstimate[frame]
+            ax.imshow(np.exp(img), origin='lower', extent=extent, cmap=plt.cm.Greys_r)
+        
+        # Set the axes limits
+        if xlim:
+            assert( isinstance(xlim, list) and len(xlim) == 2 )
+            ax.set_xlim(xlim)
+        if ylim:
+            assert( isinstance(ylim, list) and len(ylim) == 2 )
+            ax.set_ylim(ylim)
 
     def smoothContour(self, smoothWindow):
         if self.contour is None:
