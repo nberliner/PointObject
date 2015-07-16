@@ -175,6 +175,27 @@ class Curvature(IPyNotebookStyles):
         pass
     
     def calculateCurvature(self, smooth=True, window=2):
+        """
+        Calculate the curvature based on the expression for local curvature
+        (see https://en.wikipedia.org/wiki/Curvature#Local_expressions )
+        
+        The contour path is stored internally as a sequence of points that build
+        the contour path. Each point will obtain a curvature value which can
+        lead to noisy data for each point. The curvature values at each point
+        can be smoothed by averaging the curvature over neighbhoring points.
+        This is done using a rolling window weighted with a gaussian to give 
+        points further away from the center point a lower weight.
+        
+        
+        Input:
+            smooth (bool):  Smooth the curvature data using the gaussian weighted
+                            rolling window approach.
+            
+            window (float):  Sigma of the gaussian (The three sigma range of the
+                             gaussian will be used for the averaging with each 
+                             localisation weighted according to the value of 
+                             the gaussian).
+        """
         # Calculate the curvature in each frame
         self.dataCurvature = dict()
         for frame in self.data.keys():
