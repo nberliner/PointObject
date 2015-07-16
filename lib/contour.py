@@ -23,8 +23,10 @@ from sklearn.grid_search import GridSearchCV
 
 from datetime import datetime
 import warnings
+import itertools
 
 from morphsnakesWrapper import Morphsnake
+from myMultiprocessing  import runMultiCore
 from utils import *
 
 # Function definition to be used with parmap
@@ -71,10 +73,14 @@ class Contour(IPyNotebookStyles):
         self.contour       = None
         self.contourSmooth = None
         
-        self.pixelSize = None
+        self.pixelSize     = None
+        self.macweOptimise = None
     
-    def _getFigure(self, title):
-        nrFigs = len(self.data)
+    def _getFigure(self, title, nrFigs=None):
+        if nrFigs is None:
+            nrFigs = len(self.data)
+        else:
+            nrFigs = nrFigs
         return getFigure(title, nrFigs, self.doubleFigure, self.figTitleSize, self.axesLabelSize)
     
     def setData(self, data):
@@ -236,6 +242,100 @@ class Contour(IPyNotebookStyles):
             ax.scatter(x=XY[:,0], y=XY[:,1])
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
     
+    def findFittingParameters(self, frame, smoothing, lambda1, lambda2, iteration=1000, \
+                              scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
+        """
+        Find the best parameters for the morphological contour fitting algorithm.
+        
+        Running the morphological contour fitting algorithm is computationally
+        expansive. In order to not have to optimise the parameters on all frames
+        and to have a direct comparison of the result this function may be used.
+        By specifing the desired parameters in list() objects, the full
+        combination of parameters is evaluated on a single frame.
+        
+        Input:
+            frame (int):  The frame that should be used
+            
+            smoothing (list):  The smoothng parameters that should evaluated.
+                               Note: the values must be integers in a list!
+            
+            lambda1 (list):    The lambda1 parameters that should be evaluated.
+                               Note: the values must be integers in a list!
+            
+            lambda2 (list):    The lambda2 parameters that should be evaluated.
+                               Note: the values must be integers in a list!
+        """
+        if self.kdfEstimate is None:
+            print('Kernel density not yet calculated. Run calculateContour() first')
+            return
+        
+        # Set the calculation start time
+        startTime = datetime.now()
+        
+        # Assemble the combination of input parameters
+        assert( isinstance(frame, int) )
+        if frame == 0:
+            print("Please note that frames are counted starting from 0! Setting the frame to 1.")
+            frame = 1
+        assert( isinstance(smoothing, list) )
+        assert( isinstance(lambda1,   list) )
+        assert( isinstance(lambda2,   list) )
+        # Thanks to: http://stackoverflow.com/a/798893
+        parameters = list(itertools.product( *[smoothing, lambda1, lambda2] ))
+        print("Testing %d parameter combinations" %len(parameters))
+            
+        # Get the kernel density estimate
+        img = np.exp(self.kdfEstimate[frame][1])
+
+        # Assemble the morph snakes and run them on multi cores
+        self.macweOptimise = list()
+        for s, l1, l2 in parameters:
+            self.macweOptimise.append( Morphsnake([img, ], s, l1, l2) )
+            
+        self.macweOptimise = runMultiCore(self.macweOptimise)
+        
+        # We're done with caluclation, print some interesting messages
+        time = datetime.now()-startTime
+        print("Finished contour calculation in:", str(time)[:-7])
+        return
+        
+        # Show the result
+        self._plotOptimise(frame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)
+        
+    
+    def _plotOptimise(self, frame, scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
+        for idx, ax in self._getFigure("Contour fitting parameters", len(self.macweOptimise)):
+            # Set the title
+            s  = self.macweOptimise[idx-1].smoothing
+            l1 = self.macweOptimise[idx-1].lambda1
+            l2 = self.macweOptimise[idx-1].lambda2
+            ax.set_title("smoothing: %d, lambda1: %d, lambda2: %d" %(s, l1, l2) )
+            
+            
+            # Get the data
+            kernel, Z, Xgrid, Ygrid, extent = self.kdfEstimate[frame]
+            macwe = self.macweOptimise[idx-1].macwes[0]
+            img   = self.macweOptimise[idx-1].data[0]
+            
+            # Plot the point localisations
+            if scatter:
+                XY = self.data[frame]
+                ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
+            
+            # Plot the contour line
+            ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
+            
+            # Plot the kernel density image
+            ax.imshow(img, origin='lower', extent=extent, cmap=plt.cm.Greys_r)
+            
+            # Set the axes limits
+            if xlim:
+                assert( isinstance(xlim, list) and len(xlim) == 2 )
+                ax.set_xlim(xlim)
+            if ylim:
+                assert( isinstance(ylim, list) and len(ylim) == 2 )
+                ax.set_ylim(ylim)
+            
     
     def selectContour(self, level=0.5, minPathLength=100, xlim=False, ylim=False):
         """

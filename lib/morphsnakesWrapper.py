@@ -25,26 +25,37 @@ def circle_levelset(shape, center, sqradius, scalerow=1.0):
 
 class Morphsnake(object):
     
-    def __init__(self, data, smoothing=1, lambda1=4, lambda2=1):
+    def __init__(self, data, smoothing=1, lambda1=1, lambda2=1):
         
-        self.data      = data
-        self.smoothing = smoothing
-        self.lambda1   = lambda1
-        self.lambda2   = lambda2
+        self.data       = data
+        self.smoothing  = smoothing
+        self.lambda1    = lambda1
+        self.lambda2    = lambda2
+        self.iterations = 1500
         
         self.macwes = None
     
-    def run(self, iterations=1000):
+    def __call__(self):
+        self.run()
+        return self
+    
+    def run(self):
         # Select the starting point for each image
         self._autolevelset()
         
         # Set the interations
         for macwe in self.macwes:
-            macwe.iterations = iterations
+            macwe.iterations = self.iterations
         
-        # Run the algorithm and sort the result after it is done.
-        self.macwes = runMultiCore(self.macwes)
-        self.macwes = self._sort(self.macwes)
+        # Multi-core or not?
+        if len(self.macwes) > 1:
+            # Run the algorithm and sort the result after it is done.
+            self.macwes = runMultiCore(self.macwes)
+            self.macwes = self._sort(self.macwes)
+        else:
+            macwe = self.macwes[0]
+            macwe() # run the algorithm
+            self.macwes = [macwe, ]
     
     def _sort(self, macwes):
         tmp = [ (item.frame, item) for item in macwes ]
