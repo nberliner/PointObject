@@ -179,8 +179,11 @@ class Contour(IPyNotebookStyles):
         print("Finished kernel density estimation in:", str(time)[:-7])
         return
     
-    def _optimiseBandwidth(self, lower=15, upper=40, num=25, frame=1):
+    def _optimiseBandwidth(self, lower=15, upper=60, num=45, frame=1):
         ## See https://jakevdp.github.io/blog/2013/12/01/kernel-density-estimation/
+    
+        # Set the calculation start time
+        startTime = datetime.now()
         
         # Create the parameter space that should be sampled
         params = {'bandwidth': np.linspace(lower, upper, num=num, endpoint=True), \
@@ -195,12 +198,18 @@ class Contour(IPyNotebookStyles):
         # Select the data from frame
         XY = self.data[frame]
         grid.fit(XY)
-        print("Using the estimated paramters:")
-        print(grid.best_params_)
+        
+        # We're done with caluclation, print some interesting messages
+        time = datetime.now()-startTime
+        print("Finished parameter estimation in: %s\n" %str(time)[:-7] )
+        print("Using the best estimated paramters:")
+        for key, value in grid.best_params_.items():
+            print( "%s:\t%s" %(str(key), str(value)) )
+        print("\n")
         
         if grid.best_params_['bandwidth'] == lower or grid.best_params_['bandwidth'] == upper:
-            warnings.warn("Warning: see bandwidth parameter was estimated to be optimal at one sample boundary")
-            warnings.warn("Try shifting the sample window!")
+            warnings.warn("Warning: The bandwidth parameter was estimated to be optimal at one sampling boundary")
+            warnings.warn("Try shifting the sampling window!")
         
         return grid.best_params_['bandwidth']
     
