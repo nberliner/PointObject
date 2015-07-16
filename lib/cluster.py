@@ -165,7 +165,7 @@ class Cluster(IPyNotebookStyles):
             
                 xyEdge = XY[class_member_mask & ~core_samples_mask]
                 ax.plot(xyEdge[:, 0], xyEdge[:, 1], 'o', markerfacecolor=col,
-                         markeredgecolor='none', markersize=1);
+                         markeredgecolor='none', markersize=2);
                 
                 # Create the legend but keep only big clusters
                 if len(xyCore) > clusterSizeFiler and not k == -1:
