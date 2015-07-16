@@ -13,7 +13,6 @@ Copyright (C) 2015 Niklas Berliner
 import numpy as np
 import matplotlib.pylab as plt
 from scipy.signal import convolve2d
-from scipy.ndimage import gaussian_filter1d
 
 import multiprocessing
 import pickle
@@ -33,19 +32,6 @@ def moving_average_2d(data, window):
     # (mode='same') and symmetrical boundary conditions are assumed
     # (boundary='symm').
     return convolve2d(data, window, mode='same', boundary='symm')
-
-
-def curvature(x, y, absolute=False):
-    # Credit goes here: http://stackoverflow.com/a/28310758/1922650
-    #first and second derivative
-    x1 = gaussian_filter1d(x, sigma=1, order=1, mode='wrap')
-    x2 = gaussian_filter1d(x1, sigma=1, order=1, mode='wrap')
-    y1 = gaussian_filter1d(y, sigma=1, order=1, mode='wrap')
-    y2 = gaussian_filter1d(y1, sigma=1, order=1, mode='wrap')
-    if absolute:
-        return np.abs(x1*y2 - y1*x2) / np.power(x1**2 + y1**2, 3./2)
-    else:
-        return (x1*y2 - y1*x2) / np.power(x1**2 + y1**2, 3./2)
 
 
 def getFigure(title, nrFigs, figSize=(16,7), figTitleSize=16, axesLabelSize=12):
