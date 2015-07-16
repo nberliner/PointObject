@@ -211,7 +211,7 @@ class Curvature(IPyNotebookStyles):
                 cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
-    def selectCurvature(self):
+    def selectCurvature(self, xlim=False, ylim=False):
 
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
@@ -220,7 +220,7 @@ class Curvature(IPyNotebookStyles):
         
         self.contourSelected = dict()
         for frame in self.data.keys():
-            (x1, y1), (x2, y2), (x3, y3), (x4, y4) = self._select(frame)
+            (x1, y1), (x2, y2), (x3, y3), (x4, y4) = self._select(frame, xlim=xlim, ylim=ylim)
             self.contourSelected.setdefault(frame, list()).append( (1, self._getLineLength(frame, x1, y1, x2, y2 )) )
             self.contourSelected.setdefault(frame, list()).append( (2, self._getLineLength(frame, x3, y3, x4, y4 )) )
     
@@ -310,7 +310,7 @@ class Curvature(IPyNotebookStyles):
         
         ax.text(x=x_center, y=y_center, s=str(text), size=14, color='black', bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='round,pad=0.3'))
     
-    def _select(self, frame):
+    def _select(self, frame, xlim=False, ylim=False):
 
         # Create the figure
         fig = plt.figure(figsize=self.singleFigure)
@@ -319,6 +319,14 @@ class Curvature(IPyNotebookStyles):
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
         ax.set_aspect('equal')
+        
+        # Set the axes limits
+        if xlim:
+            assert( isinstance(xlim, list) and len(xlim) == 2 )
+            ax.set_xlim(xlim)
+        if ylim:
+            assert( isinstance(ylim, list) and len(ylim) == 2 )
+            ax.set_ylim(ylim)
         
         # Get the data
         for contour, C in self.dataCurvature[frame]:
