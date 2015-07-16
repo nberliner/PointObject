@@ -264,6 +264,22 @@ class Contour(IPyNotebookStyles):
             
             lambda2 (list):    The lambda2 parameters that should be evaluated.
                                Note: the values must be integers in a list!
+            
+            iterations (int):  The number of iterations the contour fitting
+                               should run.
+            
+            scatter (bool):    Plot the localisation data
+            
+            s (int):           Size of the scattter points
+            
+            alpha (float):     Set the transparancy of the scatter points
+                               (cf. matplotlib documentation for more details)
+            
+            xlim (list):       Limit the x range of the plot. Must be list of
+                               length 2 with lower limit as first value and
+                               upper limit as second value.
+            
+            ylim (list):       Limit the y range of the plot. (see also xlim)
         """
         if self.kdfEstimate is None:
             print('Kernel density not yet calculated. Run calculateContour() first')
@@ -293,14 +309,14 @@ class Contour(IPyNotebookStyles):
             self.macweOptimise.append( Morphsnake([img, ], s, l1, l2) )
             
         self.macweOptimise = runMultiCore(self.macweOptimise)
+
+        # Show the result
+        self._plotOptimise(frame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)        
         
         # We're done with caluclation, print some interesting messages
         time = datetime.now()-startTime
         print("Finished contour calculation in:", str(time)[:-7])
         return
-        
-        # Show the result
-        self._plotOptimise(frame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)
         
     
     def _plotOptimise(self, frame, scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
