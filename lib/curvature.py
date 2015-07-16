@@ -265,6 +265,22 @@ class Curvature(IPyNotebookStyles):
             self.contourSelected.setdefault(frame, list()).append( (2, self._getLineLength(frame, x3, y3, x4, y4 )) )
     
     def showSelected(self, xlim=False, ylim=False, s=10):
+        """
+        Plot the selected region of the contour that will be used for curvature
+        estimation.
+        
+        The full contour will be shown in grey and the selected region will be
+        color coded according the curvature value.
+        
+        Input:
+            xlim (list):       Limit the x range of the plot. Must be list of
+                               length 2 with lower limit as first value and
+                               upper limit as second value.
+            
+            ylim (list):       Limit the y range of the plot. (see also xlim)
+            
+            s (int):           Size of the scatter plot points
+        """
         for frame, ax in self._getFigure("Curvature selection"):
             # Set the axes limits
             if xlim:
@@ -290,13 +306,18 @@ class Curvature(IPyNotebookStyles):
                 
                 self._placeText(index, ax, pc1, pc2)
                 
-                ax.scatter(x=x1, y=y1, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
-                ax.scatter(x=x2, y=y2, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
-                ax.scatter(x=xc1, y=yc1, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
-                ax.scatter(x=xc2, y=yc2, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
+                # Show the point that the user selected and which contour point
+                # was the closed. Main usage is/was for testing purposes.
+#                ax.scatter(x=x1, y=y1, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
+#                ax.scatter(x=x2, y=y2, c='red', alpha=0.8, edgecolor='none', s=s+20, cmap=plt.cm.seismic_r)
+#                ax.scatter(x=xc1, y=yc1, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
+#                ax.scatter(x=xc2, y=yc2, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
     
     
     def table(self):
+        """
+        Generate a table with the curvature values from the selected regions.
+        """
         rows    = list(self.contourSelected.keys())
         columns = ['Frame', '1', '2', 'Sum']
         header  = "95 percentile of the curvature segments"
