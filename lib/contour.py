@@ -406,8 +406,49 @@ class Contour(IPyNotebookStyles):
 
 
     def checkContour(self, frame, level=0.5, minPathLength=100, scatter=True, image=True, \
-                     xlim=False, ylim=False, s=2, lw=2, alpha=0.7, useSmoothed=True):
+                     xlim=False, ylim=False, s=2, lw=2, alpha=0.7, useSmoothed=False):
+        """
+        Look at individual contour fits.
         
+        After selecting the contour level, the contour can be examined for single
+        frames in more detail. Plotting the rendered image will force the plot
+        to have a "true" aspect ratio. Supressing the the rendered image will
+        result in a "false" aspect ratio.
+        
+        
+        Input:
+            frame (int):  The frame to be investiagted
+            
+            level (float): The contour level that should be selected. Should
+                           usually be 0.5
+            
+            minPathLength (int):  Threshold to below which contour paths will be
+                                  discarded. Used to filter small islands of
+                                  contour lines that do not belong to the main
+                                  body.
+            
+            scatter (bool):  Plot the localisation data
+            
+            image (bool):  Plot the kernel density estimation (i.e. the
+                           rendered image)
+            
+            s (int):           Size of the scattter points
+            
+            lw (int):          Linewidth of the contour line.
+            
+            alpha (float):     Set the transparancy of the scatter points
+                               (cf. matplotlib documentation for more details)
+            
+            xlim (list):       Limit the x range of the plot. Must be list of
+                               length 2 with lower limit as first value and
+                               upper limit as second value.
+            
+            ylim (list):       Limit the y range of the plot. (see also xlim)
+            
+            useSmoothed (bool):  Used the smoothed contour lines. Most probably
+                                 not needed.
+        
+        """
         
         if self.kdfEstimate is None:
             print('Kernel density not yet calculated. Run calculateContour() first')
