@@ -15,5 +15,5 @@ Pipeline running in IPython notebooks for analysing point localisation data
 * IPython Notebooks
 
 ### Usage ###
-* For general usage please see the example files in the ```example``` folder.
-* For a brief FAQ section please refer to the [wiki](https://github.com/nberliner/PointObject/wiki).
+* For general usage please see the example files in the ```examples``` folder
+* For a brief FAQ section please refer to the [wiki](https://github.com/nberliner/PointObject/wiki)
