@@ -93,9 +93,9 @@ class PointObject(IPyNotebookStyles):
         Export the caluculated data to a folder. For each step of the calculation
         a single file will be created containing the frame number and the relevant
         values. See the header for more information.
-        The output file will be named based on the input data file name. The
-        inout file name will be appended by "_clusterData.dat", "_contourData.dat",
-        and "_curvatureData.dat" respectively.
+        The output files will be named based on the input data file name if no
+        folderName is given. The input file name will be appended by 
+        "_clusterData.dat", "_contourData.dat", and "_curvatureData.dat" respectively.
         
         Input:
             folderName (str, None):  Export data into this folder (will be created if
