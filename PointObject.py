@@ -82,10 +82,23 @@ class PointObject(IPyNotebookStyles):
         self._convertDataFrameToDict()
     
     def save(self, folderName):
-        """ Save extracted structure and contour lines as x y data. """
-        # Note: not very save in the sense that it might fail if the 
-        # contour was not properly calculated. It also does not allow to select
-        # if the smoothed contour should be saved etc.
+        warnings.warn("save() is deprecated. Please use export() instead.", DeprecationWarning)
+        self.export(folderName)
+        
+    def export(self, folderName):
+        """
+        Save the extracted structure (i.e. clusters), contour lines, and
+        curvature values to a text file.
+        
+        Export the caluculated data to a folder. For each step of the calculation
+        a single file will be created containing the frame number and the relevant
+        values. See the header for more information.
+        
+        Input:
+            folderName (str):  Export data into this folder (will be created if
+                               it does not exist. Existing files will be overwritten!)
+        
+        """
         if not os.path.isdir(folderName):
             print("The specified folder doe not exist")
             answer = input("Create folder %s ? (y/n)" %folderName)
@@ -112,39 +125,41 @@ class PointObject(IPyNotebookStyles):
             curvatureData = None
             print("Curvature data not present. Not saving.")
 
+        # Get the name of the object
+        _, objectName = os.path.split(self.name)
+        # Define open the file hooks
+        if clusterData is not None:
+            clusterFile   = open(os.path.join( folderName, '%s_clusterData.dat' %objectName ), 'w')
+        if contourData is not None:
+            contourFile   = open(os.path.join( folderName, '%s_contourData.dat' %objectName ), 'w')
+        if curvatureData is not None:
+            curvatureFile = open(os.path.join( folderName, '%s_curvatureData.dat' %objectName ), 'w')
         
+        # Save the data
         for frame in range(1,len(self.data)+1):
-            # Define the file names
-            clusterFile   = os.path.join( folderName, 'clusterData_frame_%02d.dat' %frame )
-            contourFile   = os.path.join( folderName, 'contourData_frame_%02d.dat' %frame )
-            curvatureFile = os.path.join( folderName, 'curvatureData_frame_%02d.dat' %frame )
-            
             # Save the cluster data
             if clusterData is not None:
-                with open(clusterFile, 'w') as f:
-                    f.write('x_in_nm\ty_in_nm\n')
-                    XY = clusterData[frame]
-                    for i in range( np.shape(XY)[0] ):
-                        f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
+                clusterFile.write('x_in_nm\ty_in_nm\tframe\n')
+                XY = clusterData[frame]
+                for row in range( np.shape(XY)[0] ):
+                    clusterFile.write("%.3f\t%.3f\t%d\n" %(XY[row,0], XY[row,1], frame) )
             
             # Save the contour data
             if contourData is not None:
-                with open(contourFile, 'w') as f:
-                    f.write('x_in_nm\ty_in_nm\n')
-                    contourPaths = contourData[frame]
-                    for path in contourPaths:
-                        XY = path.vertices
-                        for i in range( np.shape(XY)[0] ):    
-                            f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
+                contourFile.write('x_in_nm\ty_in_nm\tframe\n')
+                contourPaths = contourData[frame]
+                for path in contourPaths:
+                    XY = path.vertices
+                    for row in range( np.shape(XY)[0] ):    
+                        contourFile.write("%.3f\t%.3f\t%d\n" %(XY[row,0], XY[row,1], frame) )
             
             # Save the curvature data
             if curvatureData is not None:
-                with open(curvatureFile, 'w') as f:
-                    f.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\n')
-                    for contourPath, curvature in curvatureData[frame]:
-                        XY = contourPath.vertices
-                        for row, value in enumerate(curvature):
-                            f.write("%.3f\t%.3f\t%.6f\n" %(XY[row,0], XY[row,1], value) )
+                curvatureFile.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
+                for contourPath, curvature in curvatureData[frame]:
+                    XY = contourPath.vertices
+                    for row, value in enumerate(curvature):
+                        curvatureFile.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
         
         print("Saving data to %s done." %folderName)
         return
