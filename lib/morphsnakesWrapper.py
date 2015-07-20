@@ -31,7 +31,7 @@ class Morphsnake(object):
         self.smoothing  = smoothing
         self.lambda1    = lambda1
         self.lambda2    = lambda2
-        self.iterations = 1500
+        self.iterations = iterations
         
         self.macwes = None
     
