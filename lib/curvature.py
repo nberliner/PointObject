@@ -172,7 +172,7 @@ class Curvature(IPyNotebookStyles):
         self.data = data
     
     def getResult(self):
-        pass
+        return self.dataCurvature
     
     def calculateCurvature(self, smooth=True, window=2):
         """

@@ -86,7 +86,7 @@ class Contour(IPyNotebookStyles):
     def setData(self, data):
         self.data = data
     
-    def getResult(self, smoothed=True):
+    def getResult(self, smoothed=False):
         if self.contour is None:
             print('You need to first pick the contour level.')
 

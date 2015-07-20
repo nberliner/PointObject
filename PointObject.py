@@ -95,41 +95,58 @@ class PointObject(IPyNotebookStyles):
                 print("Not saving the data.")
                 return
         
+        # Get the results
         try:
             clusterData = self.cluster.getResult()
         except AttributeError:
             clusterData = None
+            print("Clustering data not present. Not saving.")
         try:
             contourData = self.contour.getResult()
         except AttributeError:
             contourData = None
-        
-        # Quick sanity check
-        if clusterData is None:
-            print("The data seems not be clustered yet. Not saving")
-        if contourData is None:
-            print("The contour seems not be calculated yet. Not saving")
+            print("Contour data not present. Not saving.")
+        try:
+            curvatureData = self.curvature.getResult()
+        except AttributeError:
+            curvatureData = None
+            print("Curvature data not present. Not saving.")
+
         
         for frame in range(1,len(self.data)+1):
             # Define the file names
-            clusterFile = os.path.join( folderName, 'clusterData_frame_%02d.dat' %frame )
-            contourFile = os.path.join( folderName, 'contourData_frame_%02d.dat' %frame )
-            # Save the data
+            clusterFile   = os.path.join( folderName, 'clusterData_frame_%02d.dat' %frame )
+            contourFile   = os.path.join( folderName, 'contourData_frame_%02d.dat' %frame )
+            curvatureFile = os.path.join( folderName, 'curvatureData_frame_%02d.dat' %frame )
+            
+            # Save the cluster data
             if clusterData is not None:
                 with open(clusterFile, 'w') as f:
                     f.write('x_in_nm\ty_in_nm\n')
-                    _, XY, _ = clusterData[frame]
+                    XY = clusterData[frame]
                     for i in range( np.shape(XY)[0] ):
                         f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
             
+            # Save the contour data
             if contourData is not None:
                 with open(contourFile, 'w') as f:
                     f.write('x_in_nm\ty_in_nm\n')
-                    XY = contourData[frame]
-                    for item in XY:
-                        for i in range( np.shape(item)[0] ):    
-                            f.write( str(item[i,0]) + '\t' + str(item[i,1]) + '\n' )
+                    contourPaths = contourData[frame]
+                    for path in contourPaths:
+                        XY = path.vertices
+                        for i in range( np.shape(XY)[0] ):    
+                            f.write( str(XY[i,0]) + '\t' + str(XY[i,1]) + '\n' )
+            
+            # Save the curvature data
+            if curvatureData is not None:
+                with open(curvatureFile, 'w') as f:
+                    f.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\n')
+                    for contourPath, curvature in curvatureData[frame]:
+                        XY = contourPath.vertices
+                        for row, value in enumerate(curvature):
+                            f.write("%.3f\t%.3f\t%.6f\n" %(XY[row,0], XY[row,1], value) )
         
+        print("Saving data to %s done." %folderName)
         return
     
     def clusterData(self, eps, min_samples, frame=None, clusterSizeFiler=50, askUser=True):
