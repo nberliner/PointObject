@@ -81,11 +81,11 @@ class PointObject(IPyNotebookStyles):
         # Convert the DataFrame to the Dictionary lookup
         self._convertDataFrameToDict()
     
-    def save(self, folderName):
+    def save(self, folderName=None):
         warnings.warn("save() is deprecated. Please use export() instead.", DeprecationWarning)
         self.export(folderName)
         
-    def export(self, folderName):
+    def export(self, folderName=None):
         """
         Save the extracted structure (i.e. clusters), contour lines, and
         curvature values to a text file.
@@ -93,12 +93,20 @@ class PointObject(IPyNotebookStyles):
         Export the caluculated data to a folder. For each step of the calculation
         a single file will be created containing the frame number and the relevant
         values. See the header for more information.
+        The output file will be named based on the input data file name. The
+        inout file name will be appended by "_clusterData.dat", "_contourData.dat",
+        and "_curvatureData.dat" respectively.
         
         Input:
-            folderName (str):  Export data into this folder (will be created if
-                               it does not exist. Existing files will be overwritten!)
+            folderName (str, None):  Export data into this folder (will be created if
+                                     it does not exist. Existing files will be overwritten!)
         
         """
+        # Use the input folder if not specified otherwise
+        if folderName is None:
+            folderName, _ = os.path.split(self.name)
+        
+        # Check if the folder exists, and if not ask if it should be created
         if not os.path.isdir(folderName):
             print("The specified folder doe not exist")
             answer = input("Create folder %s ? (y/n)" %folderName)
