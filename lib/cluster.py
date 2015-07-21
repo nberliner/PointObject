@@ -146,6 +146,7 @@ class Cluster(IPyNotebookStyles):
             
             ax.set_xlabel("x position in nm", size=self.axesLabelSize)
             ax.set_ylabel("y position in nm", size=self.axesLabelSize)
+            ax.set_aspect('equal')
             
             # Black removed and is used for noise instead.
             unique_labels = list(set(labels))
@@ -378,6 +379,7 @@ class Cluster(IPyNotebookStyles):
         ax = fig.add_subplot(111)
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
+        ax.set_aspect('equal')
         
         # Set the axes limits
         if xlim:

@@ -467,6 +467,7 @@ class Contour(IPyNotebookStyles):
         fig = plt.figure(figsize=self.singleFigureLarge)
         fig.suptitle("Selected contour in frame %d" %frame, size=self.figTitleSize)
         ax = fig.add_subplot(111)
+        ax.set_aspect('equal')
         ax.set_xlabel("x position in nm", size=self.axesLabelSize)
         ax.set_ylabel("y position in nm", size=self.axesLabelSize)
 

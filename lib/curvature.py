@@ -370,7 +370,7 @@ class Curvature(IPyNotebookStyles):
         
         for frame, ax in figs:
             # Configure the subfigure
-            ax.set_aspect('auto')
+            ax.set_aspect('equal')
             ax.set_title("Side %d" % frame)
             ax.axhline(y=0,c="black",linewidth=0.5,zorder=0)
             
