@@ -132,6 +132,7 @@ class Curvature(IPyNotebookStyles):
         
         self.data = None
         self.dataCurvature = None
+        self.contourSelected = None
         
         # helpers to keep the curvature color consitent
         self.curvatureMax = 0

@@ -128,7 +128,8 @@ class PointObject(IPyNotebookStyles):
             contourData = None
             print("Contour data not present. Not saving.")
         try:
-            curvatureData = self.curvature.getResult()
+            curvatureData         = self.curvature.getResult()
+            curvatureDataSelected = self.curvature.contourSelected
         except AttributeError:
             curvatureData = None
             print("Curvature data not present. Not saving.")
@@ -142,6 +143,7 @@ class PointObject(IPyNotebookStyles):
             contourFile   = open(os.path.join( folderName, '%s_contourData.dat' %objectName ), 'w')
         if curvatureData is not None:
             curvatureFile = open(os.path.join( folderName, '%s_curvatureData.dat' %objectName ), 'w')
+            curvatureFileSelected = open(os.path.join( folderName, '%s_curvatureDataSelected.dat' %objectName ), 'w')
         
         # Save the data
         for frame in range(1,len(self.data)+1):
@@ -163,11 +165,19 @@ class PointObject(IPyNotebookStyles):
             
             # Save the curvature data
             if curvatureData is not None:
+                # Write the full curvature data
                 curvatureFile.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
                 for contourPath, curvature in curvatureData[frame]:
                     XY = contourPath.vertices
                     for row, value in enumerate(curvature):
                         curvatureFile.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
+                
+                # Write the selected region only
+                curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
+                for _, (contourPath, curvature, _, _, _) in curvatureDataSelected[frame]:
+                    XY = contourPath.vertices
+                    for row, value in enumerate(curvature):
+                        curvatureFileSelected.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
         
         print("Saving data to %s done." %folderName)
         return
