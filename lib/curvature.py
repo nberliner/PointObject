@@ -201,10 +201,12 @@ class Curvature(IPyNotebookStyles):
         for frame in self.data.keys():
             for contour in self.data[frame]:
                 # Do the calculation
-                XY     = contour.vertices
-                xc, yc = XY[:,0], XY[:,1]
-                Corig  = curvature(xc, yc)
-                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
+#                XY     = contour.vertices
+#                xc, yc = XY[:,0], XY[:,1]
+#                Corig  = curvature(xc, yc)
+#                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
+                
+                Corig, Cavg = self._calculateCurvature(contour, window)
                 
                 # Select the curvature
                 if smooth:
@@ -232,7 +234,35 @@ class Curvature(IPyNotebookStyles):
                 cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
-#    def _calculateCurvature(self, )
+    def _calculateCurvature(self, contour, window):
+        # In order to avoid boundary effects from the curvature calculation add
+        # some points at the beginning and the end, calculate the curvature, and
+        # then remove them again to obtain True curvature values for the boundary.
+        # Also see issue 7
+    
+        # Select the xy point data
+        XY = contour.vertices
+
+        # Assert that the contour is closed and the start and end point are close in space
+        assert( np.allclose(XY[0], XY[-1]) )
+        
+        # Add half of the array at the beginning, the other half at the end
+        center = np.int(np.floor(len(XY)/2))
+        firstHalf  = XY[:center,:]
+        secondHalf = XY[center:,:]
+        newXY = np.concatenate( (secondHalf, XY, firstHalf) )
+        
+        # Calculate the curvature on the new array
+        xc, yc = newXY[:,0], newXY[:,1]
+        Corig  = curvature(xc, yc)
+        Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
+        
+        # Limit the curvature to the original length
+        Corig = Corig[center+1:-center]
+        Cavg  = Cavg[center+1:-center]
+        
+        return Corig, Cavg
+        
     
     def selectCurvature(self, xlim=False, ylim=False, distanceThreshold=100.0):
         """
