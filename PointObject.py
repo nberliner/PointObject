@@ -139,24 +139,26 @@ class PointObject(IPyNotebookStyles):
         # Define open the file hooks
         if clusterData is not None:
             clusterFile   = open(os.path.join( folderName, '%s_clusterData.dat' %objectName ), 'w')
+            clusterFile.write('x_in_nm\ty_in_nm\tframe\n')
         if contourData is not None:
             contourFile   = open(os.path.join( folderName, '%s_contourData.dat' %objectName ), 'w')
+            contourFile.write('x_in_nm\ty_in_nm\tframe\n')
         if curvatureData is not None:
             curvatureFile = open(os.path.join( folderName, '%s_curvatureData.dat' %objectName ), 'w')
             curvatureFileSelected = open(os.path.join( folderName, '%s_curvatureDataSelected.dat' %objectName ), 'w')
+            curvatureFile.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
+            curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
         
         # Save the data
         for frame in range(1,len(self.data)+1):
             # Save the cluster data
             if clusterData is not None:
-                clusterFile.write('x_in_nm\ty_in_nm\tframe\n')
                 XY = clusterData[frame]
                 for row in range( np.shape(XY)[0] ):
                     clusterFile.write("%.3f\t%.3f\t%d\n" %(XY[row,0], XY[row,1], frame) )
             
             # Save the contour data
             if contourData is not None:
-                contourFile.write('x_in_nm\ty_in_nm\tframe\n')
                 contourPaths = contourData[frame]
                 for path in contourPaths:
                     XY = path.vertices
@@ -166,14 +168,12 @@ class PointObject(IPyNotebookStyles):
             # Save the curvature data
             if curvatureData is not None:
                 # Write the full curvature data
-                curvatureFile.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
                 for contourPath, curvature in curvatureData[frame]:
                     XY = contourPath.vertices
                     for row, value in enumerate(curvature):
                         curvatureFile.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
                 
                 # Write the selected region only
-                curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
                 for _, (contourPath, curvature, _, _, _) in curvatureDataSelected[frame]:
                     XY = contourPath.vertices
                     for row, value in enumerate(curvature):
