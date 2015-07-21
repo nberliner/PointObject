@@ -232,7 +232,9 @@ class Curvature(IPyNotebookStyles):
                 cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
-    def selectCurvature(self, xlim=False, ylim=False):
+#    def _calculateCurvature(self, )
+    
+    def selectCurvature(self, xlim=False, ylim=False, distanceThreshold=100.0):
         """
         Let the user select the part of the contour that will be used for
         curvature measure.
@@ -251,6 +253,12 @@ class Curvature(IPyNotebookStyles):
                                upper limit as second value.
             
             ylim (list):       Limit the y range of the plot. (see also xlim)
+            
+            distanceThreshold (float):  Distance around the user selected point
+                                        where contour lines are chosen as being
+                                        selected. Try reducing the threshold
+                                        if contour lines are close together and
+                                        the unambiquous selection is not possible.
         """
 
         # Check if switched to qt mode
@@ -261,8 +269,8 @@ class Curvature(IPyNotebookStyles):
         self.contourSelected = dict()
         for frame in self.data.keys():
             (x1, y1), (x2, y2), (x3, y3), (x4, y4) = self._select(frame, xlim=xlim, ylim=ylim)
-            self.contourSelected.setdefault(frame, list()).append( (1, self._getLineLength(frame, x1, y1, x2, y2 )) )
-            self.contourSelected.setdefault(frame, list()).append( (2, self._getLineLength(frame, x3, y3, x4, y4 )) )
+            self.contourSelected.setdefault(frame, list()).append( (1, self._getLineLength(frame, x1, y1, x2, y2, distanceThreshold )) )
+            self.contourSelected.setdefault(frame, list()).append( (2, self._getLineLength(frame, x3, y3, x4, y4, distanceThreshold )) )
     
     def showSelected(self, xlim=False, ylim=False, s=10):
         """
@@ -420,12 +428,12 @@ class Curvature(IPyNotebookStyles):
         
         return cman.points
     
-    def _getLineLength(self, frame, x1, y1, x2, y2):
+    def _getLineLength(self, frame, x1, y1, x2, y2, distanceThreshold=100.0):
         count = 0
         # Get the contour
         for contour, C in self.dataCurvature[frame]:
             
-            if self._pointOnContour( (x1, y1), contour ):
+            if self._pointOnContour( (x1, y1), contour, distanceThreshold ):
                 count += 1 # for sanity check
                 # Get the points on the contour
                 pc1, pc2 = self._closestPoints(contour, (x1, y1), (x2, y2) )
@@ -434,10 +442,20 @@ class Curvature(IPyNotebookStyles):
                 # Select the curvature of the segment
                 curvature = np.asarray(C)[idx]
         
+        # Do some checks to test if exactly one contour was associated.
+        if count == 0:
+            # No contour associated
+            print("It looks as if you clicked too far away from the contour line.")
+            print("Maybe try to limit the ROI by specifing the xlim and ylim paramter.")
+        if count > 1:
+            # The association was not unique
+            print("The association to a contour was not unique!")
+            print("Try reducing the threshold value distanceThreshold in selectCurvature.")
+            
         assert( count == 1 )
         return segment, curvature, (x1, y1, x2, y2), pc1, pc2
     
-    def _pointOnContour(self, point, contour):
+    def _pointOnContour(self, point, contour, distanceThreshold=100.0):
         XY   = contour.vertices
         x, y = point
         
@@ -448,7 +466,7 @@ class Curvature(IPyNotebookStyles):
         
         assert( len(closestPointIdx) == 1 ) # Otherwise there are multiple closest points
 
-        if minDist >= 100.0: # must be the other contour line
+        if minDist >= float(distanceThreshold): # must be the other contour line
             return False
         else:
             return True
