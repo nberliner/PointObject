@@ -15,8 +15,34 @@ from copy import deepcopy
 from readLocalisations  import *
 
 class localisations():
+    """
+    Container for point localisation super-resolution data.
+    
+    This is a striped down version of the one used in the high-throughput project
+    
+    It needs to be inherited by classes that add localisation file specifics.
+    
+    """
     
     def __init__(self):
+        """
+        Input:
+
+          data (DataFrame):         Pandas DataFrame object containing the localisations.
+                                    The column names represent which values are stored,
+                                    the row names contain the frame number. Since a column
+                                    with the frame number is required the row name is
+                                    not normally needed.
+        
+          dataFiltered (DataFrame): Pandas DataFrame. Like data but containing
+                                    the filtered data.
+        
+        
+          filtered (bool):   Flag indicating the a filter was applied on the data
+          
+          pixelSize (float): The pixel size in nm
+
+        """
         
         self.frameLimit   = False
         self.filtered     = False
@@ -42,6 +68,22 @@ class localisations():
         self.gapLength = 0
     
     def localisations(self, dataType=None, dataFilter=True):
+        """
+        Return the point localisations in a pandas DataFrame.
+        
+        If nothing is specified the most "advanced" localisations are returned.
+        This means, if the data was filtered the filtered data will be returned,
+        if the data was grouped the grouped data will be returned, etc.
+        This is accumulative meaning that the "optimal" localisations are
+        returned by default.
+        
+        Input:
+          dataType (str):    Controls which localisations are returned.Possible
+                             values are: 'original', 'grouped', 'driftCorrected',
+                             'driftCorrectedUngrouped', None
+        
+          dataFilter (bool): Return filtered data (if available) or unfiltered
+        """
         doFilter = self.filtered and dataFilter
         if dataType == None:
             if doFilter:
@@ -83,9 +125,14 @@ class localisations():
             print('Warning: DataType not understood!')
     
     def queryLocalisations(self, dataType=None, dataFilter=True):
-        """
-        Which type of localisations the instance is using by default
-        Mainly intended for testing.
+        """ 
+        Query the localisation type that is returned by localisations()
+        
+        Use for bug fixing. Since the class is self aware and should be smart
+        about which localisations (i.e. grouped, filtered, etc.) are returned
+        the returned type can be queried for verification.
+        See the docstring of localisations() for a description of the input
+        parameters.
         """
         doFilter = self.filtered and dataFilter
         if dataType == None:
@@ -167,8 +214,41 @@ class localisations():
 
     def filterLocalisations(self, minValue=None, maxValue=None, dataType=None, \
                             relative=True, overwrite=False):
-        """ minValue and maxValue are taken as percentage values of the maxium 
-        value. Supress via relative=False
+        """ 
+        Filter the localisations.
+        
+        Apply a filter to the localisation data. Data can be filtered by any
+        information that is present in the localisations DataFrame as column.
+        The allowed dataType will thus depend on the input type of the localisations.
+        
+        To reset the filter and continue working with the original data call
+        the function with no argument (or minValue, maxValue, and dataType all
+        set to None).
+        
+        Input:
+          minValue (float):  Lower bound of the filter. If None, minus infinity will be used.
+          
+          maxValue (float):  Upper bound of the filter If None, plus infinity will be used.
+          
+          dataType (str):    Sorry this is misleading, espacially since it has
+                             nothing to do with the dataType parameter from
+                             the localisations() function. This specifies the column
+                             name that should be used for filtering. E.g. it could
+                             be "Photon Count" for rapdistorm or maybe llr_threshold
+                             for the sCMOS code.
+        
+          relative (bool):   Do relative filtering, i.e. the minValue and maxValue
+                             will be interpreted as percentage values. The filtering
+                             will be done relative to the maximum value. The
+                             percentage range can be between [0,1] or [1,100]
+        
+          overwrite (bool):  Replace the internal storage of the data with the
+                             filtered data. If True the original data will be
+                             fogotten and the filtered data will be taken as new
+                             "original" input data. I do not remember right now
+                             why exactly I added this option but I think I needed
+                             to "reset" the memory of the class at some point..
+                             
         """
         if minValue==None and maxValue==None and dataType==None: #reset filter
             self.filtered = False
@@ -249,6 +329,7 @@ class localisations():
             data.to_csv(fname, sep='\t', index=False)
         except:
             print('Sorry, could not write the data to disk!')
+
 
 class rapidstormLocalisations(localisations):
     
