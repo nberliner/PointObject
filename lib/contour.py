@@ -180,6 +180,20 @@ class Contour(IPyNotebookStyles):
         return
     
     def _optimiseBandwidth(self, lower=15, upper=60, num=45, frame=1):
+        """
+        Run the cross-validation for determining the optimal bandwidth parameter
+        for the Kernel Density Estimation.
+        
+        Input:
+          lower (float):   Lower bound of the bandwidth parameter range that will be sampled
+          
+          upper (float):   Upper bound of the bandwidth parameter range that will be sampled
+          
+          num (int):       Number of points on the range from lower to upper that will be sampled
+          
+          frame (int):     The frame that will be used for bandwidth estimation
+          
+        """
         ## See https://jakevdp.github.io/blog/2013/12/01/kernel-density-estimation/
     
         # Set the calculation start time
@@ -345,7 +359,7 @@ class Contour(IPyNotebookStyles):
             # Plot the point localisations
             if scatter:
                 XY = self.data[frame]
-                ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
+                ax.scatter(x=XY[:,0], y=XY[:,1], facecolor='magenta', edgecolor='None', s=s, alpha=alpha)
             
             # Plot the contour line
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
@@ -488,7 +502,7 @@ class Contour(IPyNotebookStyles):
             ax.plot(X, Y, color='red', linewidth=lw)
         
         if scatter:
-            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=s, alpha=alpha)
+            ax.scatter(x=XY[:,0], y=XY[:,1], facecolor='magenta', edgecolor='None', s=s, alpha=alpha)
         
         if image:
             _, img, _, _, extent = self.kdfEstimate[frame]
