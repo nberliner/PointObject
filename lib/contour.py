@@ -145,9 +145,15 @@ class Contour(IPyNotebookStyles):
     
     def kernelDensityEstimate(self, kernel='gaussian', bandwidth=None):
         """
-        Calculate a kernel density estimate to obtain the contour lines
-        of localisation data. Uses multiprocessing to run the estimate for each
-        frame in parallel.
+        Calculate a kernel density estimate of point localisation data.
+        
+        Input:
+           kernel (str):      The kernel that should be used for the density estimation
+                              Please refer to the sklearn website for a list of possible
+                              values for the kernel ( http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KernelDensity.html#sklearn.neighbors.KernelDensity )
+        
+          bandwidth (float):  The bandwidth to be used
+          
         """
         assert( kernel in ['gaussian', 'tophat'] )
         
