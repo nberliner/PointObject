@@ -37,7 +37,7 @@ Pipeline running in IPython notebooks for analysing point localisation data
     git clone https://github.com/nberliner/PointObject.git
     ```
     This will create a folder ```PointObject``` in ```userDirectory```.
-* Put the [ffmpeg](http://ffmpeg.org/download.html) binaries in into the folder
+* Put the [ffmpeg](http://ffmpeg.org/download.html) binaries into the folder
 
   `userDirectory/PointObject/external/ffmpeg/win64`
   
