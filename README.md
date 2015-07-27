@@ -31,6 +31,7 @@ Pipeline running in IPython notebooks for analysing point localisation data
 * Get the source code from GitHub
     You need to install git if it is not already available. On Windows you can use [GitHub for Windows](https://windows.github.com/) and use the Git Shell.
     The source code will be placed in a folder called ```PointObject``` in the current directory of the command prompt. Before cloning into the GitHub repository we will thus change to a user specified directory (```userDirectory```).
+    
     ```
     cd userDirectory
     git clone https://github.com/nberliner/PointObject.git
