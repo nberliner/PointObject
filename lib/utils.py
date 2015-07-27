@@ -145,6 +145,38 @@ class IPyNotebookStyles(object):
 
 
 
+class Color:
+    """
+    Helper to assign colors to float or integer values mapped to a given range.
+    """
+    def __init__(self, scaleMin=None, scaleMax=None):
+        self.Nglobal = dict()
+        self.cmap = plt.get_cmap('seismic_r')
+
+        self.scaleMin = scaleMin
+        self.scaleMax = scaleMax
+        
+        if scaleMin == scaleMax and scaleMin is not None:
+            print('Warning: trying to set zero scaling range!')
+            self.scaleMin = scaleMin
+            self.scaleMax = scaleMin * 1.1
+
+    def __call__(self, N):
+        
+        if self.scaleMin is None and self.scaleMax is not None:
+            c = float(N) / self.scaleMax
+        elif self.scaleMin is not None and self.scaleMax is None:
+            c = float(N)  - self.scaleMin
+        elif self.scaleMin is None and self.scaleMax is None:
+            c = float(N)
+        else:
+            c = (float(N) - self.scaleMin) / ( self.scaleMax - self.scaleMin )
+  
+        return self.cmap(c)
+    
+    def getColorbar(self):
+        return plt.cm.ScalarMappable(cmap=plt.get_cmap('seismic_r'), norm=plt.Normalize(vmin=self.scaleMin, vmax=self.scaleMax))
+
 
 
 

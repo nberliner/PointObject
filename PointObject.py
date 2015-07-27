@@ -376,23 +376,55 @@ class PointObject(IPyNotebookStyles):
         """ Return the localisations in the given frame. """
         return self.data.groupby('movieFrame').get_group(frame)
     
-    def saveMovie(self, fname, plotContour=True, sigma=10.0):
+    def saveMovie(self, fname, plotContour=True, plotCurvature=True, lw=10, alpha=0.8):
         """
-        Create an .mp4 file showing the PointObject.
+        Create an .mp4 file showing the progression of the PointObject.
+        
+        Requires the ffmpeg binaries to work. It will create a movie file showing
+        the frame-by-frame result as a movie.
+        
+        Input:
+          fname (str):           The filename of the movie
+          
+          plotContour (bool):    Plot the contour
+          
+          plotCurvature (bool):  Color code the contour line based on the local
+                                 curvature.
+          
+          lw (int):              Width of the contour line
+          
+          alpha (float):         Transparency of the contour line
+          
         """
         if self.data is None or not self.movieMade:
             print('You need to load data and make a movie first')
             return
         
-        if self.runCluster:
-            movieData = self.cluster.getResult()
-        else:
-            movieData = self.data
+        if self.contour is None:
+            print('You need to run the KDE estimate first and generate the "image"')
+            return
         
-        if plotContour and self.contour is not None:
-            movieContour = self.contour.getResult()
+        try:
+            movieData = self.contour.kdfEstimate
+            assert( movieData is not None )
+        except:
+            print("It looks as if something went wrong with getting the KDE image.")
+            print("Did you run the kernel density estimation already?")
+            return
 
-        m = MovieGenerator(movieData, movieContour, sigma)
+        try:
+            movieContour = self.contour.getResult()
+        except:
+            movieContour = None
+        try:
+            movieCurvature = self.curvature.getResult()
+        except:
+            movieCurvature = None
+        
+        if not plotCurvature:
+            movieCurvature = None
+        
+        m = MovieGenerator(movieData, movieContour, movieCurvature, plotContour=plotContour, lw=lw, alpha=alpha)
         m.make(fname)
     
     def setFOV(self, frame=1, convert=True):
