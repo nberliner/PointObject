@@ -37,7 +37,11 @@ Pipeline running in IPython notebooks for analysing point localisation data
     git clone https://github.com/nberliner/PointObject.git
     ```
     This will create a folder ```PointObject``` in ```userDirectory```.
-* Put the [ffmpeg](http://ffmpeg.org/download.html) binaries in into the folder ```userDirectory/PointObject/external/ffmpeg/win64``` (replace ```win64``` with linux if you are working on a linux machine). Adjust the `_ffmpegLinux` or `_ffmpegWin` variable in `lib/movieMaker.py` according to your version.
+* Put the [ffmpeg](http://ffmpeg.org/download.html) binaries in into the folder
+
+  `userDirectory/PointObject/external/ffmpeg/win64`
+  
+  (replace ```win64``` with `linux` if you are working on a linux machine). Adjust the `_ffmpegLinux` or `_ffmpegWin` variable in `lib/movieMaker.py` according to your version.
 * [Optional] You can create a file encapsulating the commands necessary to start the IPython Notebook server. On a Windows machine create a file ```startPointObject.cmd``` in your ```userDirectory/PointObject``` folder and copy/paste the following line
     ```
     ipython notebook --notebook-dir=notebooks
