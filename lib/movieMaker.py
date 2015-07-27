@@ -20,6 +20,9 @@ import matplotlib as mpl
 
 from utils import Color
 
+_ffmpegLinux = os.path.join('..', '..', 'external', 'ffmpeg', 'linux', 'ffmpeg-2.4.4', 'ffmpeg')
+_ffmpegWin   = os.path.join('..', '..', 'external', 'ffmpeg', 'win64', 'ffmpeg-20150501-git-02001ad-win64-static', 'bin', 'ffmpeg')
+
 class MovieGenerator(object):
     
     def __init__(self, data, contour=None, curvature=None, plotContour=True, lw=10, alpha=0.8):
@@ -56,9 +59,9 @@ class MovieGenerator(object):
         # http://matplotlib.sourceforge.net/api/animation_api.html
         # The ffmpeg binaries should be residing in the PointObject Path
         if 'linux' in sys.platform:
-            ffmpegFolder = os.path.join('..', '..', 'external', 'ffmpeg', 'linux', 'ffmpeg-2.4.4', 'ffmpeg')
+            ffmpegFolder = _ffmpegLinux
         elif 'win' in sys.platform:
-            ffmpegFolder = os.path.join('..', '..', 'external', 'ffmpeg', 'win64', 'ffmpeg-20150501-git-02001ad-win64-static', 'bin', 'ffmpeg')
+            ffmpegFolder = _ffmpegWin
 
 #        plt.rcParams['animation.ffmpeg_path'] = '/home/berliner/bin/ffmpeg/ffmpeg-2.4.4/ffmpeg'
         plt.rcParams['animation.ffmpeg_path'] = ffmpegFolder
