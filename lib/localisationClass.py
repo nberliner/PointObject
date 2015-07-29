@@ -358,7 +358,7 @@ class XYTLocalisations(localisations):
     def __init__(self):
         localisations.__init__(self)
 
-    def readFile(self, fname, pixelSize):
+    def readFile(self, fname, pixelSize=1.0):
         """
         The first row is used as header information, the following columns must
         be present: 'x', 'y', and 'frame' (note: this is case sensitive!)

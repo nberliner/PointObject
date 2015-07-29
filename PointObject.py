@@ -22,7 +22,7 @@ from time     import sleep
 from copy     import deepcopy
 
 from localisationsToMovie import LocalisationsToMovie
-from localisationClass import rapidstormLocalisations, readXYTLocalisations
+from localisationClass import rapidstormLocalisations, XYTLocalisations
 from mplWidgets        import RoiSelector
 from cluster           import Cluster
 from contour           import Contour
@@ -60,13 +60,27 @@ class PointObject(IPyNotebookStyles):
         self.curvature = None
     
     def loadFile(self, fname, dataType='rapdistorm'):
-        """ Load super-resolution data. """
+        """
+        Load a localisation file into PointObject.
+        
+        Currently supported input formats are rapidstorm and xyt. For xyt data
+        has to be tab separated file with one header line containing 'x, 'y', 'frame'
+        as labels for the columns. Additional columns may be present which will
+        be ignored.
+        
+        Input:
+          frame (str):   File that should be loaded into PointObject
+          
+          dataType (str):  Data type of the input file. Possible values are
+                           'rapidstorm' and 'xyt'.
+        
+        """
         if not isinstance(fname, DataFrame):
             self.name = fname # set the name of the object
             if dataType == 'rapdistorm':
                 data = rapidstormLocalisations()
             elif dataType == 'xyt':
-                data = readXYTLocalisations()
+                data = XYTLocalisations()
             data.readFile(fname)
             self.dataFrame = data.data # we only need the DataFrame
         else:
