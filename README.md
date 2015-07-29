@@ -47,3 +47,10 @@ Pipeline running in IPython notebooks for analysing point localisation data
     ipython notebook --notebook-dir=notebooks
     ```
     You should now be able to run the IPython Notebooks by double clicking the file.
+
+* [Optional] If you are sharing data, notebooks etc. via the switch.drive.ch owncloud instance of EPFL you can create links to the ownCloud folder. This will enable you to use relative paths for importing data which makes it easier to share notebooks and to work together on the analysis. There should be three folders in the owncloud folder, i.e. `data`, `external`, `notebooks`. By linking these folders you will firstly have the necessary ffmpeg binaries and secondly you can access the shared data and notebooks. On Windows use the `mklink` commmand from a DOS prompt.
+    ```
+    mklink /J C:\Path\To\Link\data C:\User\owncloud\PathToMito\data
+    mklink /J C:\Path\To\Link\external C:\User\owncloud\PathToMito\external
+    mklink /J C:\Path\To\Link\notebooks C:\User\owncloud\PathToMito\notebooks
+   ```
