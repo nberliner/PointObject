@@ -75,6 +75,8 @@ class Contour(IPyNotebookStyles):
         
         self.pixelSize     = None
         self.macweOptimise = None
+        self.morphFrame    = None
+        self.morph         = None
     
     def _getFigure(self, title, nrFigs=None):
         if nrFigs is None:
@@ -256,6 +258,23 @@ class Contour(IPyNotebookStyles):
         return
 
     def advanceContourMorph(self, iterations=500, frame=None):
+        """
+        Run more iterations of the contour fitting.
+        
+        If the contour fitting algorithm did not yet converge run more iterations.
+        If frame is specified only this frame will be run (might be beneficial if
+        many frames would have to be run othermise).
+        
+        Input:
+          iterations (int):  Number of additional iterations
+          
+          frame (int):       If not None sets which frame should be advanced
+          
+        """
+        if self.morph is None:
+            print("You need to initialise the contour finding algorithm first!")
+            return
+            
         # Run some more iterations
         self.morph.advance(iterations=iterations, frame=frame)
         
@@ -271,7 +290,7 @@ class Contour(IPyNotebookStyles):
             ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=10, alpha=0.8)
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
     
-    def findFittingParameters(self, frame, smoothing, lambda1, lambda2, iteration=1000, \
+    def findFittingParameters(self, frame, smoothing, lambda1, lambda2, iterations=1000, \
                               scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
         """
         Find the best parameters for the morphological contour fitting algorithm.
@@ -331,22 +350,58 @@ class Contour(IPyNotebookStyles):
             
         # Get the kernel density estimate
         img = np.exp(self.kdfEstimate[frame][1])
+        self.morphFrame = frame # remember the frame
 
         # Assemble the morph snakes and run them on multi cores
         self.macweOptimise = list()
         for s, l1, l2 in parameters:
-            self.macweOptimise.append( Morphsnake([img, ], s, l1, l2) )
-            
+            self.macweOptimise.append( Morphsnake([img, ], s, l1, l2, iterations=iterations) )
+
+        # Run the contour fitting
         self.macweOptimise = runMultiCore(self.macweOptimise)
 
         # Show the result
-        self._plotOptimise(frame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)        
+        self._plotOptimise(frame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)
         
         # We're done with caluclation, print some interesting messages
         time = datetime.now()-startTime
         print("Finished contour parameter screen:", str(time)[:-7])
         return
+    
+    def advanceFindFittingParameters(self, iterations=100, scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
+        """
+        Run more iterations of the findFittingParameters() call.
         
+        If the iterations defined when calling the findFittingParameters() function
+        do not suffice to finish the contour fitting, this function can be used
+        to run more iterations of the fitting routine without having to run everything
+        from the start again.
+        
+        Input:
+          iterations (int):  Number of additional iterations that should be run.
+          
+        """
+        if self.macweOptimise is None:
+            print("You must run findFittingParameters() first")
+            return
+        
+        # Set the calculation start time
+        startTime = datetime.now()
+            
+        # Set the iterations
+        for morphsnake in self.macweOptimise:
+            morphsnake.iterations = iterations
+        
+        # Run the contour fitting
+        self.macweOptimise = runMultiCore(self.macweOptimise)
+        
+        # Show the result
+        self._plotOptimise(self.morphFrame, scatter=scatter, s=s, alpha=alpha, xlim=xlim, ylim=ylim)
+    
+        # We're done with caluclation, print some interesting messages
+        time = datetime.now()-startTime
+        print("Finished additional iterations in:", str(time)[:-7])
+        return
     
     def _plotOptimise(self, frame, scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
         for idx, ax in self._getFigure("Contour fitting parameters", len(self.macweOptimise)):
