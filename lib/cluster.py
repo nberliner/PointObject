@@ -248,6 +248,26 @@ class Cluster(IPyNotebookStyles):
             
         
     def confineClusters(self, frame=None):
+        """
+        Manually refine the clustering result.
+        
+        This allows the user to draw a region of interest with the mouse around
+        the localisations that should be kept. All points that are outside the
+        region are rejected and not used for further analysis.
+        If no argument is given this will be run on the full stack. If frame 
+        is specified this will only be run on the respective frames.
+        
+        On the window that is opening the user can (optinally) draw a region 
+        (lasso selector) with the mouse or click and then click the "Accept" 
+        button to keep the selected points.
+        
+        Input:
+          frame (list or int):  Can be either an integer with the frame number
+                                that should be refined or a list containing
+                                the frames that should be done.
+                                If None, then all frames are shown for refinement.
+                                
+        """
         # Check if switched to qt mode
         if not mpl.get_backend() == 'Qt4Agg':
             print('Switch to the Qt backend first by executing "%pylab qt"')
