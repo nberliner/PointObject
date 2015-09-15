@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pylab as plt
 import warnings
+import tifffile as Tiff
 
 from pandas   import DataFrame
 from datetime import datetime
@@ -45,6 +46,7 @@ class PointObject(IPyNotebookStyles):
         
         self.dataFrame         = None
         self.data              = None
+        self.images            = None
         self.originalDataFrame = None
         
         self.movieMade  = False
@@ -231,19 +233,148 @@ class PointObject(IPyNotebookStyles):
         self.cluster.cluster(eps, min_samples, frame, clusterSizeFiler, askUser) # run DBSCAN
         self.runCluster = True # set the cluster flag so that subsequent calls now it was run
     
-    def calculateContour(self, kernel='gaussian', bandwidth=None, iterations=1500, 
-                         smoothing=2, lambda1=1, lambda2=1, kde=True, morph=True):
+    def resetImage(self):
         """
-        Contour finding based on a 2D kernel density estimate.and contour fitting.
-
+        Reset the contour finding routine.
+        """
+        self.contour = None
+        return
+    
+    def calculateKDE(self, kernel='gaussian', bandwidth=None):
+        """
+        Calculate the Kernel Density Estimation.
         
-        Find the contour of the selected point localisations. This is done in two
-        steps. The first step is to generate a high-resolution "image" of the
-        localisations. The second step is to find the contour via a morphological
-        contour fitting algorithm (https://github.com/pmneila/morphsnakes).
-
+        This will generate a high-resolution "image" of the localisations
+        based on the kernel density estimate of the point localisations.
+        
         If no bandwidth is specified an optimal bandwidth parameter is estimated
         using cross-validation. This is the default behaviour.
+        
+        Input:
+            kernel (str):  Kernel to be used for the kernel density estimation
+                           Possible values are 'gaussian' (default) and 'tophat'
+            
+            bandwidth (float,None):  The bandwidth for the kernel density estimation
+                                     If set to None cross-validation will be used
+                                     to find the optimal parameter.
+                                     
+        """
+        if not self.runCluster:
+            print('You need to run the clustering first!')
+            return
+        if self.contour is not None:
+            print("It seems as if you already set up a pixel image.")
+            print("Use resetImage() and try again")
+            return
+        
+        self.contour = Contour()
+        self.contour.setData( self.cluster.getResult(self.edgePoints) )
+        self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
+    
+    def loadPixelImage(self, fname, pixelSize=1.0, start=None, end=None, padding=[20,20]):
+        """
+        Load a pixel image into the pipeline.
+        
+        Instead of generating a super-resolved image from point localisation
+        data the pipeline can load any pixel image instead. The consecutive
+        steps of contour fitting and curvature calculation can then be used
+        on this input.
+        
+        Input:
+          fname (str):       Image file to load
+          
+          pixelSize (float): Set the pixel size in nm
+          
+          start (int):       The first frame to load
+          
+          end (int):         The last frame to include
+          
+          padding (list):    Must be a list of two int specifying the width
+                             in pixels of the dark region that will be added
+                             to the images at the outside edges. This is done
+                             to allow the constricting contour fitting to fully
+                             close on objects even if they are extending out
+                             of the frame.
+          
+        """
+        if self.contour is not None:
+            print("It seems as if you already set up a pixel image.")
+            print("Use resetImage() and try again")
+            return
+            
+        # Load the image file using tifffile.py
+        tmpImage    = Tiff.TiffFile(fname)
+        self.images = [ tmpImage[i].asarray() for i in range(len(tmpImage)) ]
+        self.images = self.RGBtoGreyscale(self.images)
+        
+        # Select the frame range
+        if start is None:
+            start = 1
+        if end is None:
+            end = len(self.images)
+        
+        self.images = self.images[start-1:end]
+        
+        # Add some dark pixel paddings around the image. This makes contour
+        # detection easier if the object is extending out of the image border.
+        if padding:
+            xpad, ypad = padding
+            newImages = list()
+            for image in self.images:
+                # Create arrays containing zeros
+                zerosX = np.zeros( [np.shape(image)[0], xpad] )
+                zerosY = np.zeros( [ypad, np.shape(image)[1]+2*xpad] )
+                
+                # Add them to the original image
+                newImage = np.concatenate( [zerosX, image, zerosX], axis=1 )
+                newImage = np.concatenate( [zerosY, newImage, zerosY], axis=0 )
+                
+                # Add the padded image to the list
+                newImages.append(newImage)
+            
+            # Replace the original images with the padded ones.
+            self.images = newImages
+
+        # Initialise the Contour class and set the images
+        self.contour = Contour()
+        self.contour.images = self.images
+        self.contour.pixelSize = [pixelSize, pixelSize, pixelSize, pixelSize]
+
+        print("Finished loading %d frames from %s" %(len(self.images), fname))
+        return
+    
+    def RGBtoGreyscale(self, images):
+        """
+        Convert RGB images to greyscale
+        
+        The SIM images seem to be returned as RGB TIFF images containing three
+        channels containing each the same information. The pipeline expects
+        greyscale images. If images of the described are detected they are
+        converted to simple greyscale images.
+        
+        Input:
+          images (list):  List containing np.arrays holding the image data
+          
+        """
+        assert( isinstance(images, list) )
+        if len( np.shape(images[0]) ) == 4: # i.e. RGB
+            # Assert that all color channels are actually the same
+            assert( np.all( images[0][:,:,:,0] == images[0][:,:,:,1] ) )
+            assert( np.all( images[0][:,:,:,0] == images[0][:,:,:,2] ) )
+            images = [ item[:,:,:,0] for item in images ]
+        
+        if len(images) == 1:
+            images = [ images[0][frame,:,:] for frame in range(np.shape(images[0])[0]) ]
+        
+        return images
+        
+    def calculateContour(self, iterations=1500, smoothing=2, lambda1=1, \
+                         lambda2=1, startPoints="min"):
+        """
+        Find the contour of a super-resolved pixel image.
+        
+        The contour is fitted using a morphological contour fitting algorithm
+        (https://github.com/pmneila/morphsnakes).
         
         The contour fitting is controlled using three parameters, i.e. smoothing,
         lamda1, and lambda2. Here the description given in the original source code
@@ -261,13 +392,6 @@ class PointObject(IPyNotebookStyles):
         
         
         Input:
-            kernel (str):  Kernel to be used for the kernel density estimation
-                           Possible values are 'gaussian' (default) and 'tophat'
-            
-            bandwidth (float,None):  The bandwidth for the kernel density estimation
-                                     If set to None cross-validation will be used
-                                     to find the optimal parameter.
-            
             iterations (int):  Number of steps the morphological contour fitting
                                algorithm should advance.
             
@@ -277,31 +401,62 @@ class PointObject(IPyNotebookStyles):
 
             lambda2 (scalar):    See above
             
-            kde (bool):  Run Kernel Density Estimation. Set to False if
-                         calculateContour() has already been run and only the
-                         contour fitting should be repeated.
-            
-            morph (bool):  Run the morphological contour fitting
-            
+            startPoints (list or str) This determines the seed point for the
+                                      contour fitting algorithm, i.e. the starting
+                                      point. Can be either "max" or "min" and
+                                      one correspdoning pixel is choses based
+                                      of the condition. If individual frames
+                                      require different starting points this
+                                      can be specified using a list. Each element
+                                      in the list will then be taken for the
+                                      corresponding frame. E.g. ["max","max,"min"]
+                                      would take the "max" for frame 1 and 2 and
+                                      "min" for frame 3.
         """
-        if not self.runCluster:
-            print('You need to run the clustering first!')
+        if self.contour is None:
+            print("The image is not yet set yet.")
             return
-        
-        if kde:
-            self.contour = Contour()
-            self.contour.setData( self.cluster.getResult(self.edgePoints) )
-            self.contour.kernelDensityEstimate(kernel=kernel, bandwidth=bandwidth)
-        if morph:
-            self.contour.findContourMorph(iterations=iterations ,\
-                                          smoothing=smoothing   ,\
-                                          lambda1=lambda1       ,\
-                                          lambda2=lambda2
-                                          )
+
+        self.contour.findContourMorph(iterations=iterations ,\
+                                      smoothing=smoothing   ,\
+                                      lambda1=lambda1       ,\
+                                      lambda2=lambda2       ,\
+                                      startPoints=startPoints
+                                      )
+        self.contour.selectContour()
     
-    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False):
+    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False, isclosed=True, percentiles=[99,1]):
         """
-        Initialise the curvature
+        Calculate the curvature based on the expression for local curvature
+        ( see https://en.wikipedia.org/wiki/Curvature#Local_expressions )
+        
+        Input:
+          smooth (bool):  Smooth the curvature data using the gaussian weighted
+                          rolling window approach.
+            
+          window (float):  Sigma of the gaussian (The three sigma range of the
+                           gaussian will be used for the averaging with each 
+                           localisation weighted according to the value of 
+                           the gaussian).
+        
+          smoothedContour (boolean): Use the smoothed contour for the calculation?
+                                     Default is False.
+        
+          isclosed (boolean): Treat the contour as closed path. Default is True
+                              and should always be the case if padding was added
+                              to the image when loading image files or when the
+                              FOV was sufficiently large when loading point
+                              localisation data. Note that there might be unexpected
+                              if the contour is not closed.
+        
+          percentiles (list): Must be a list of two floats. Specifies the max and
+                              min values for displaying the curvature on a color
+                              scale. This can be important if unnatural kinks are
+                              observed which would dominate the curvature to an
+                              extent that the color scale would be skewed.
+                              By setting the percentiles one can set the range
+                              in a "smart" way.
+        
         """
         if self.contour is None:
             print('You need to run the contour selection first!')
@@ -309,7 +464,7 @@ class PointObject(IPyNotebookStyles):
         
         self.curvature = Curvature()
         self.curvature.setData( self.contour.getResult(smoothed=smoothedContour) )
-        self.curvature.calculateCurvature(smooth=smooth, window=window)
+        self.curvature.calculateCurvature(smooth=smooth, window=window, isclosed=isclosed, percentiles=percentiles)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):
         """

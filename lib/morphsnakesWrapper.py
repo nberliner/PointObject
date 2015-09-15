@@ -25,13 +25,14 @@ def circle_levelset(shape, center, sqradius, scalerow=1.0):
 
 class Morphsnake(object):
     
-    def __init__(self, data, smoothing=1, lambda1=1, lambda2=1, iterations=1500):
+    def __init__(self, data, smoothing=1, lambda1=1, lambda2=1, iterations=1500, startPoints="min"):
         
-        self.data       = data
-        self.smoothing  = smoothing
-        self.lambda1    = lambda1
-        self.lambda2    = lambda2
-        self.iterations = iterations
+        self.data        = data
+        self.smoothing   = smoothing
+        self.lambda1     = lambda1
+        self.lambda2     = lambda2
+        self.iterations  = iterations
+        self.startPoints = startPoints
         
         self.macwes = None
     
@@ -41,7 +42,7 @@ class Morphsnake(object):
     
     def run(self):
         # Select the starting point for each image
-        self._autolevelset()
+        self._autolevelset(self.startPoints)
         
         # Set the interations
         for macwe in self.macwes:
@@ -62,7 +63,11 @@ class Morphsnake(object):
         tmp = sorted(tmp, key=itemgetter(0))
         return [ item[1] for item in tmp ]
     
-    def _autolevelset(self):
+    def _autolevelset(self, startPoints="min"):
+        # Convert the startPoints to a list if necessary
+        if not isinstance(startPoints, list):
+            startPoints = [ startPoints for i in range(len(self.data)) ]
+            
         self.macwes = list()
         for frame, img in enumerate(self.data):
             # Set up the image
@@ -72,7 +77,12 @@ class Morphsnake(object):
                                          )
             macwe.frame = frame
             
-            x,y = np.where(img == np.min(img))
+            if startPoints[frame] == "min":
+                x,y = np.where(img == np.min(img))
+            elif startPoints[frame] == "max":
+                x,y = np.where(img == np.max(img))
+            else:
+                raise ValueError("startPoint %r not understood. It must be either min or max" %startPoints[frame])
             macwe.levelset = circle_levelset(img.shape, (x[0], y[0]), 10)
             
             self.macwes.append(macwe)

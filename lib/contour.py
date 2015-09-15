@@ -70,6 +70,7 @@ class Contour(IPyNotebookStyles):
         
         self.data          = None
         self.kdfEstimate   = None
+        self.images        = None
         self.contour       = None
         self.contourSmooth = None
         
@@ -78,11 +79,21 @@ class Contour(IPyNotebookStyles):
         self.morphFrame    = None
         self.morph         = None
     
-    def _getFigure(self, title, nrFigs=None):
+    def _getNrFigures(self, nrFigs=None):
         if nrFigs is None:
-            nrFigs = len(self.data)
+            if self.data is not None:
+                nrFigs = len(self.data)
+            elif self.images is not None:
+                nrFigs = len(self.images)
+            else:
+                raise ValueError
         else:
             nrFigs = nrFigs
+            
+        return nrFigs
+    
+    def _getFigure(self, title, nrFigs=None):
+        nrFigs = self._getNrFigures(nrFigs)
         return getFigure(title, nrFigs, self.doubleFigure, self.figTitleSize, self.axesLabelSize)
     
     def setData(self, data):
@@ -177,6 +188,7 @@ class Contour(IPyNotebookStyles):
             bandwidth = self._optimiseBandwidth()
     
         # Calculate the KernelDensity functions and evaluate them on a grid on multiple cores
+        print("Generating the super-resolved images..")
         kdfEstimate = parmap( calculateKernelDensity, [ (frame, XY, kernel, bandwidth, positions, Xgrid, Ygrid, extend)  for frame, XY in enumerate(XYData, start=1) ] )
     
         # Convert the result into a dict for fast lookup
@@ -236,17 +248,28 @@ class Contour(IPyNotebookStyles):
         return grid.best_params_['bandwidth']
     
     
-    def findContourMorph(self, iterations=1500, smoothing=1, lambda1=4, lambda2=1):
+    def findContourMorph(self, iterations=1500, smoothing=1, lambda1=4, lambda2=1, startPoints="min"):
         # Set the calculation start time
         startTime = datetime.now()
         
-        # Set up the kernel density images which should be used
-        # The sklearn package for the Kernel Density Estimation returns the log
-        # of the likelyhood. We need to exponentiate the result before use.
-        imgs = [ np.exp(self.kdfEstimate[frame][1]) for frame in range(1,len(self.kdfEstimate)+1) ]
+        # Check if one input is available
+        if self.images is None and self.kdfEstimate is None:
+            print("You must either run the KDE or provide a pixel image.")
+            return
+        elif self.images is not None and self.kdfEstimate is not None:
+            print("Sorry. Both a pixel image and KDE estimate is available. I don't know which one to use.")
+            return
+        
+        if self.kdfEstimate is not None:
+            # Set up the kernel density images which should be used
+            # The sklearn package for the Kernel Density Estimation returns the log
+            # of the likelyhood. We need to exponentiate the result before use.
+            imgs = [ np.exp(self.kdfEstimate[frame][1]) for frame in range(1,len(self.kdfEstimate)+1) ]
+        elif self.images is not None:
+            imgs = self.images
         
         # Set up the Morphsnake class and run the first iterations
-        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2, iterations)
+        self.morph = Morphsnake(imgs, smoothing, lambda1, lambda2, iterations, startPoints)
         self.morph.run()
         
         # Plot the result
@@ -283,12 +306,22 @@ class Contour(IPyNotebookStyles):
     
     def _plotMorph(self):
         for frame, ax in self._getFigure("Morph"):
-            kernel, Z, Xgrid, Ygrid, extent = self.kdfEstimate[frame]
             macwe = self.morph.macwes[frame-1]
             
-            XY = self.data[frame]
-            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=10, alpha=0.8)
+            # Check if the data is originating from point localisatins or a rendered image
+            if self.data is not None:
+                _, _, _, _, extent = self.kdfEstimate[frame]
+                XY = self.data[frame]
+                ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=10, alpha=0.8)
+            else:
+                extent = None
+                ax.imshow(self.images[frame-1], interpolation='none', origin='upper', cmap = plt.cm.Greys_r)
+                
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
+            fig = ax.get_figure()
+            fig.tight_layout()
+        
+        return
     
     def findFittingParameters(self, frame, smoothing, lambda1, lambda2, iterations=1000, \
                               scatter=True, s=10, alpha=0.8, xlim=False, ylim=False):
@@ -329,10 +362,6 @@ class Contour(IPyNotebookStyles):
             
             ylim (list):       Limit the y range of the plot. (see also xlim)
         """
-        if self.kdfEstimate is None:
-            print('Kernel density not yet calculated. Run calculateContour() first')
-            return
-        
         # Set the calculation start time
         startTime = datetime.now()
         
@@ -349,7 +378,10 @@ class Contour(IPyNotebookStyles):
         print("Testing %d parameter combinations" %len(parameters))
             
         # Get the kernel density estimate
-        img = np.exp(self.kdfEstimate[frame][1])
+        if self.kdfEstimate is not None:
+            img = np.exp(self.kdfEstimate[frame][1])
+        elif self.images is not None:
+            img = self.images[frame]
         self.morphFrame = frame # remember the frame
 
         # Assemble the morph snakes and run them on multi cores
@@ -410,23 +442,26 @@ class Contour(IPyNotebookStyles):
             l1 = self.macweOptimise[idx-1].lambda1
             l2 = self.macweOptimise[idx-1].lambda2
             ax.set_title("smoothing: %d, lambda1: %d, lambda2: %d" %(sm, l1, l2) )
-            
-            
-            # Get the data
-            kernel, Z, Xgrid, Ygrid, extent = self.kdfEstimate[frame]
+
+            # Get the morph filter object
             macwe = self.macweOptimise[idx-1].macwes[0]
-            img   = self.macweOptimise[idx-1].data[0]
             
             # Plot the point localisations
-            if scatter:
+            if scatter and self.data is not None:
                 XY = self.data[frame]
                 ax.scatter(x=XY[:,0], y=XY[:,1], facecolor='magenta', edgecolor='None', s=s, alpha=alpha)
             
+            # Plot the image (depeding on the type)
+            if self.data is not None:
+                _, _, _, _, extent = self.kdfEstimate[frame]
+                img   = self.macweOptimise[idx-1].data[0]
+                ax.imshow(img, origin='lower', extent=extent, cmap=plt.cm.Greys_r)
+            else:
+                extent = None
+                ax.imshow(self.images[frame-1], interpolation='none', origin='upper', cmap = plt.cm.Greys_r)
+            
             # Plot the contour line
             ax.contour(macwe.levelset, [0.5], colors='r', extent=extent)
-            
-            # Plot the kernel density image
-            ax.imshow(img, origin='lower', extent=extent, cmap=plt.cm.Greys_r)
             
             # Set the axes limits
             if xlim:
@@ -437,7 +472,7 @@ class Contour(IPyNotebookStyles):
                 ax.set_ylim(ylim)
             
     
-    def selectContour(self, level=0.5, minPathLength=100, xlim=False, ylim=False):
+    def selectContour(self, level=0.5, minPathLength=100, xlim=False, ylim=False, plot=False):
         """
         Input:
           level           "Probability" level of the contour of type float
@@ -457,37 +492,47 @@ class Contour(IPyNotebookStyles):
         
           Small islands of contour lines can be filtered with `minPathLength`
         """
-        if self.kdfEstimate is None:
-            print('Kernel density not yet calculated. Run calculateContour() first')
+        if self.morph.macwes is None:
+            print('Contour not yet calculated. Cannot select one.')
             return
 
         self.contour = dict()
-        for frame, ax in self._getFigure("Contour levels at %.1f" %level):
-            # Set the axes limits
-            if xlim:
-                assert( isinstance(xlim, list) and len(xlim) == 2 )
-                ax.set_xlim(xlim)
-            if ylim:
-                assert( isinstance(ylim, list) and len(ylim) == 2 )
-                ax.set_ylim(ylim)
-            
-            XY = self.data[frame]
-#            kernel, Z, Xgrid, Ygrid, extend = self.kdfEstimate[frame]
-            Z = self.morph.levelset(frame)
-            
-            contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
-
-            for cont in contours:
-                # Store the paths
-                self.contour.setdefault(frame, list()).append(cont)
-                X = cont.vertices[:, 0]
-                Y = cont.vertices[:, 1]
-#                print('X',np.max(X),np.min(X))
-#                print('Y',np.max(Y),np.min(Y))
-                ax.plot(X, Y, color='red', linewidth=2)
-            
-            ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=1.5, alpha=0.5)
-
+        if plot and self.data is not None:
+            for frame, ax in self._getFigure("Contour levels at %.1f" %level):
+                # Set the axes limits
+                if xlim:
+                    assert( isinstance(xlim, list) and len(xlim) == 2 )
+                    ax.set_xlim(xlim)
+                if ylim:
+                    assert( isinstance(ylim, list) and len(ylim) == 2 )
+                    ax.set_ylim(ylim)
+                
+                # Get the data
+                XY = self.data[frame]
+                Z  = self.morph.levelset(frame)
+                
+                # Get the contour lines
+                contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
+    
+                # Plot the contour lines
+                for cont in contours:
+                    # Store the paths
+                    self.contour.setdefault(frame, list()).append(cont)
+                    X = cont.vertices[:, 0]
+                    Y = cont.vertices[:, 1]
+                    ax.plot(X, Y, color='red', linewidth=2)
+                
+                # Add the point localisation as scatter
+                ax.scatter(x=XY[:,0], y=XY[:,1], edgecolor='None', s=1.5, alpha=0.5)
+        else:
+            for frame in range(1,self._getNrFigures()+1):
+                Z = self.morph.levelset(frame)
+                contours = self._findContour(Z, self.pixelSize, level=level, threshold=minPathLength)
+                for cont in contours:
+                    # Store the paths
+                    self.contour.setdefault(frame, list()).append(cont)
+        
+        return
 
     def checkContour(self, frame, level=0.5, minPathLength=100, scatter=True, image=True, \
                      xlim=False, ylim=False, s=2, lw=2, alpha=0.7, useSmoothed=False):

@@ -175,7 +175,7 @@ class Curvature(IPyNotebookStyles):
     def getResult(self):
         return self.dataCurvature
     
-    def calculateCurvature(self, smooth=True, window=2):
+    def calculateCurvature(self, smooth=True, window=2, isclosed=True, percentiles=[99,1]):
         """
         Calculate the curvature based on the expression for local curvature
         (see https://en.wikipedia.org/wiki/Curvature#Local_expressions )
@@ -196,6 +196,21 @@ class Curvature(IPyNotebookStyles):
                              gaussian will be used for the averaging with each 
                              localisation weighted according to the value of 
                              the gaussian).
+            
+            isclosed (boolean): Treat the contour as closed path. Default is True
+                                and should always be the case if padding was added
+                                to the image when loading image files or when the
+                                FOV was sufficiently large when loading point
+                                localisation data. Note that there might be unexpected
+                                if the contour is not closed.
+        
+            percentiles (list): Must be a list of two floats. Specifies the max and
+                                min values for displaying the curvature on a color
+                                scale. This can be important if unnatural kinks are
+                                observed which would dominate the curvature to an
+                                extent that the color scale would be skewed.
+                                By setting the percentiles one can set the range
+                                in a "smart" way.
         """
         # Calculate the curvature in each frame
         self.dataCurvature = dict()
@@ -207,7 +222,7 @@ class Curvature(IPyNotebookStyles):
 #                Corig  = curvature(xc, yc)
 #                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
                 
-                Corig, Cavg = self._calculateCurvature(contour, window)
+                Corig, Cavg = self._calculateCurvature(contour, window, isclosed)
                 
                 # Select the curvature
                 if smooth:
@@ -215,11 +230,18 @@ class Curvature(IPyNotebookStyles):
                 else:
                     C = Corig
                 
-                # Check if we reached a new min or max
-                if np.max(C) >= self.curvatureMax:
-                    self.curvatureMax   = np.max(C)
-                if np.min(C) <= self.curvatureMin:
-                    self.curvatureMin   = np.min(C)
+                # Check if we reached a new min or max, but only look at the
+                # 99.5 percentile
+                if percentiles:
+                    Cmax = np.percentile(C, percentiles[0])
+                    Cmin = np.percentile(C, percentiles[1])
+                else:
+                    Cmax = np.max(C)
+                    Cmin = np.min(C)
+                if Cmax >= self.curvatureMax:
+                    self.curvatureMax = Cmax
+                if Cmin <= self.curvatureMin:
+                    self.curvatureMin = Cmin
                     
                 # Add the curvature to the dict()
                 self.dataCurvature.setdefault(frame, list()).append( (contour, C) )
@@ -235,7 +257,7 @@ class Curvature(IPyNotebookStyles):
                 cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
-    def _calculateCurvature(self, contour, window):
+    def _calculateCurvature(self, contour, window, isclosed=True):
         # In order to avoid boundary effects from the curvature calculation add
         # some points at the beginning and the end, calculate the curvature, and
         # then remove them again to obtain True curvature values for the boundary.
@@ -245,22 +267,32 @@ class Curvature(IPyNotebookStyles):
         XY = contour.vertices
 
         # Assert that the contour is closed and the start and end point are close in space
-        assert( np.allclose(XY[0], XY[-1]) )
+        if isclosed:
+            assert( np.allclose(XY[0], XY[-1]) )
         
-        # Add half of the array at the beginning, the other half at the end
-        center = np.int(np.floor(len(XY)/2))
-        firstHalf  = XY[:center,:]
-        secondHalf = XY[center:,:]
-        newXY = np.concatenate( (secondHalf, XY, firstHalf) )
+            # Add half of the array at the beginning, the other half at the end
+            center = np.int(np.floor(len(XY)/2))
+            firstHalf  = XY[:center,:]
+            secondHalf = XY[center:,:]
+            newXY = np.concatenate( (secondHalf, XY, firstHalf) )
+            
+            # Calculate the curvature on the new array
+            xc, yc = newXY[:,0], newXY[:,1]
+            Corig  = curvature(xc, yc)
+            Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
+            
+            # Limit the curvature to the original length
+            Corig = Corig[center+1:-center]
+            Cavg  = Cavg[center+1:-center]
         
-        # Calculate the curvature on the new array
-        xc, yc = newXY[:,0], newXY[:,1]
-        Corig  = curvature(xc, yc)
-        Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
-        
-        # Limit the curvature to the original length
-        Corig = Corig[center+1:-center]
-        Cavg  = Cavg[center+1:-center]
+        else:
+            # Calculate the curvature but ignore the endings
+            xc, yc = XY[:,0], XY[:,1]
+            Corig  = curvature(xc, yc)
+            Corig[0]  = 0
+            Corig[-1] = 0
+            Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
+            
         
         return Corig, Cavg
         
@@ -412,6 +444,8 @@ class Curvature(IPyNotebookStyles):
             ax.set_aspect('auto')
             ax.set_title("Side %d" % frame)
             ax.axhline(y=0,c="black",linewidth=0.5,zorder=0)
+            ax.set_xlabel("Frame", size=self.axesLabelSize)
+            ax.set_ylabel("Curvature", size=self.axesLabelSize)
             
             # Plot the data
             ax.plot(X,curv[frame-1])
