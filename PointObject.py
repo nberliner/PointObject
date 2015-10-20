@@ -167,7 +167,7 @@ class PointObject(IPyNotebookStyles):
             curvatureFile = open(os.path.join( folderName, '%s_curvatureData.dat' %objectName ), 'w')
             curvatureFileSelected = open(os.path.join( folderName, '%s_curvatureDataSelected.dat' %objectName ), 'w')
             curvatureFile.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
-            curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
+            curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tside\tframe\n')
         
         # Save the data
         for frame in range(1,(self.nrOfFrames+1)):
@@ -194,10 +194,10 @@ class PointObject(IPyNotebookStyles):
                         curvatureFile.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
                 
                 # Write the selected region only
-                for _, (contourPath, curvature, _, _, _) in curvatureDataSelected[frame]:
+                for side, (contourPath, curvature, _, _, _) in curvatureDataSelected[frame]:
                     XY = contourPath.vertices
                     for row, value in enumerate(curvature):
-                        curvatureFileSelected.write("%.3f\t%.3f\t%.6f\t%d\n" %(XY[row,0], XY[row,1], value, frame) )
+                        curvatureFileSelected.write("%.3f\t%.3f\t%.6f\t%d\t%d\n" %(XY[row,0], XY[row,1], value, side, frame) )
         
         print("Saving data to %s done." %folderName)
         return
