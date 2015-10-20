@@ -48,6 +48,7 @@ class PointObject(IPyNotebookStyles):
         self.data              = None
         self.images            = None
         self.originalDataFrame = None
+        self.nrOfFrames        = None
         
         self.movieMade  = False
         self.runCluster = False
@@ -95,7 +96,10 @@ class PointObject(IPyNotebookStyles):
         self.originalDataFrame = deepcopy(self.dataFrame)
 
         # Convert the DataFrame to the Dictionary lookup
-        self._convertDataFrameToDict()
+        self.data = self._convertDataFrameToDict()
+        
+        # Save the number of frames
+        self.nrOfFrames = len(self.data)
     
     def save(self, folderName=None):
         warnings.warn("save() is deprecated. Please use export() instead.", DeprecationWarning)
@@ -166,7 +170,7 @@ class PointObject(IPyNotebookStyles):
             curvatureFileSelected.write('x_in_nm\ty_in_nm\tcurvature_in_(1/nm)\tframe\n')
         
         # Save the data
-        for frame in range(1,len(self.data)+1):
+        for frame in range(1,(self.nrOfFrames+1)):
             # Save the cluster data
             if clusterData is not None:
                 XY = clusterData[frame]
@@ -317,6 +321,9 @@ class PointObject(IPyNotebookStyles):
             end = len(self.images)
         
         self.images = self.images[start-1:end]
+        
+        # Save the number of frames
+        self.nrOfFrames = len(self.images)
         
         # Add some dark pixel paddings around the image. This makes contour
         # detection easier if the object is extending out of the image border.
@@ -651,7 +658,7 @@ class PointObject(IPyNotebookStyles):
         # Select the ROI
         self._selectFOVdata()
         if convert:
-            self._convertDataFrameToDict()
+            self.data = self._convertDataFrameToDict()
 
     def _selectFOVdata(self):
         if self.ROIedges is None:
@@ -666,15 +673,16 @@ class PointObject(IPyNotebookStyles):
         self.dataFrame = self.dataFrame[ self.dataFrame.y <= ytr ]
     
     def _convertDataFrameToDict(self):
-        self.data = dict()
+        data = dict()
         if self.movieMade:
             for movieFrame in set(self.dataFrame.movieFrame):
                 XY = np.asarray( self.dataFrame[ self.dataFrame.movieFrame == movieFrame ][['x','y']] )
-                self.data[movieFrame] = [movieFrame, XY, None ]
+                data[movieFrame] = [movieFrame, XY, None ]
         else:
             XY = np.asarray( self.dataFrame[['x','y']] )
-            self.data[1] = [1, XY, None ]
+            data[1] = [1, XY, None ]
 
+        return data
 
 
 
