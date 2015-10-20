@@ -137,18 +137,18 @@ class PointObject(IPyNotebookStyles):
             clusterData = self.cluster.getResult()
         except AttributeError:
             clusterData = None
-            print("Clustering data not present. Not saving.")
+            print("Clustering data not present. Not saving cluster data.")
         try:
             contourData = self.contour.getResult()
         except AttributeError:
             contourData = None
-            print("Contour data not present. Not saving.")
+            print("Contour data not present. Not saving contour data.")
         try:
             curvatureData         = self.curvature.getResult()
             curvatureDataSelected = self.curvature.contourSelected
         except AttributeError:
             curvatureData = None
-            print("Curvature data not present. Not saving.")
+            print("Curvature data not present. Not saving curvature data.")
 
         # Get the name of the object
         _, objectName = os.path.split(self.name)
