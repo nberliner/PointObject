@@ -301,6 +301,9 @@ class PointObject(IPyNotebookStyles):
             print("It seems as if you already set up a pixel image.")
             print("Use resetImage() and try again")
             return
+        
+        # Set the name of the object
+        self.name = fname
             
         # Load the image file using tifffile.py
         tmpImage    = Tiff.TiffFile(fname)
