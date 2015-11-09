@@ -669,6 +669,7 @@ class Contour(IPyNotebookStyles):
         # pixelSizes are inverted.. the "x" one is for "y" and vice versa
 #        return lambda x,y: ( x*float(pixelSize[2])+pixelSize[3]+pixelSize[2]/2., \
 #                             y*float(pixelSize[0])+pixelSize[1]+pixelSize[0]/2 )
+        assert( len(pixelSize) == 4 )
         return lambda y,x: ( x*float(pixelSize[0])+pixelSize[1]+pixelSize[0]/2.0, \
                              y*float(pixelSize[2])+pixelSize[3]+pixelSize[2]/2.0  )
 
