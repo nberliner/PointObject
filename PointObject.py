@@ -348,7 +348,7 @@ class PointObject(IPyNotebookStyles):
         # Initialise the Contour class and set the images
         self.contour = Contour()
         self.contour.images = self.images
-        self.contour.pixelSize = [pixelSize, pixelSize, pixelSize, pixelSize]
+        self.contour.pixelSize = [float(pixelSize), 0.0, float(pixelSize), 0.0]
 
         print("Finished loading %d frames from %s" %(len(self.images), fname))
         return
