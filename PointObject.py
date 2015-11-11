@@ -435,7 +435,7 @@ class PointObject(IPyNotebookStyles):
                                       )
         self.contour.selectContour()
     
-    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False, isclosed=True, percentiles=[99,1]):
+    def calculateCurvature(self, smooth=True, window=2, smoothedContour=False, percentiles=[99,1]):
         """
         Calculate the curvature based on the expression for local curvature
         ( see https://en.wikipedia.org/wiki/Curvature#Local_expressions )
@@ -452,7 +452,14 @@ class PointObject(IPyNotebookStyles):
           smoothedContour (boolean): Use the smoothed contour for the calculation?
                                      Default is False.
         
-          isclosed (boolean): Treat the contour as closed path. Default is True
+          isclosed (boolean): REMOVED 
+            
+                              Each contour is checked if it closed, i.e. start
+                              and end point fall close in space and treated
+                              accordingly. For open contours the endings are
+                              ignored to avoid bias from the edges.
+                                
+                              Treat the contour as closed path. Default is True
                               and should always be the case if padding was added
                               to the image when loading image files or when the
                               FOV was sufficiently large when loading point
@@ -474,7 +481,7 @@ class PointObject(IPyNotebookStyles):
         
         self.curvature = Curvature()
         self.curvature.setData( self.contour.getResult(smoothed=smoothedContour) )
-        self.curvature.calculateCurvature(smooth=smooth, window=window, isclosed=isclosed, percentiles=percentiles)
+        self.curvature.calculateCurvature(smooth=smooth, window=window, percentiles=percentiles)
     
     def skeletonize(self, thres, binSize=10.0, sigma=5.0):
         """

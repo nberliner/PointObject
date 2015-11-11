@@ -175,7 +175,7 @@ class Curvature(IPyNotebookStyles):
     def getResult(self):
         return self.dataCurvature
     
-    def calculateCurvature(self, smooth=True, window=2, isclosed=True, percentiles=[99,1]):
+    def calculateCurvature(self, smooth=True, window=2, percentiles=[99,1]):
         """
         Calculate the curvature based on the expression for local curvature
         (see https://en.wikipedia.org/wiki/Curvature#Local_expressions )
@@ -197,12 +197,19 @@ class Curvature(IPyNotebookStyles):
                              localisation weighted according to the value of 
                              the gaussian).
             
-            isclosed (boolean): Treat the contour as closed path. Default is True
+            isclosed (boolean): REMOVED 
+            
+                                Each contour is checked if it closed, i.e. start
+                                and end point fall close in space and treated
+                                accordingly. For open contours the endings are
+                                ignored to avoid bias from the edges.
+                                
+                                (Treat the contour as closed path. Default is True
                                 and should always be the case if padding was added
                                 to the image when loading image files or when the
                                 FOV was sufficiently large when loading point
                                 localisation data. Note that there might be unexpected
-                                if the contour is not closed.
+                                if the contour is not closed.)
         
             percentiles (list): Must be a list of two floats. Specifies the max and
                                 min values for displaying the curvature on a color
@@ -222,7 +229,7 @@ class Curvature(IPyNotebookStyles):
 #                Corig  = curvature(xc, yc)
 #                Cavg   = averageCurvature(Corig, window, 'gaussian') # Calculate an average based on a gaussian
                 
-                Corig, Cavg = self._calculateCurvature(contour, window, isclosed)
+                Corig, Cavg = self._calculateCurvature(contour, window)
                 
                 # Select the curvature
                 if smooth:
@@ -257,18 +264,44 @@ class Curvature(IPyNotebookStyles):
                 cColor = [ self.color(i) for i in C ] # get the color code
                 ax.scatter(x=xc, y=yc, c=cColor, alpha=1, edgecolor='none', s=10, cmap=plt.cm.seismic_r)
     
-    def _calculateCurvature(self, contour, window, isclosed=True):
+    def _calculateCurvature(self, contour, window):
         # In order to avoid boundary effects from the curvature calculation add
         # some points at the beginning and the end, calculate the curvature, and
         # then remove them again to obtain True curvature values for the boundary.
         # Also see issue 7
     
+        # Define a function to check that the contour is actually closed
+        def is_closed(XY):
+            """ 
+            Check if the start and end of the contour in XY are comparable
+            to the average distance. To be precise, the function returns
+            True if the distance between start and end point is less than the
+            98 percentile of all distances between sucessive points.
+            """
+            ii = 1
+            jj = len(XY)-2
+            assert( ii+1 < jj ) # sanity check; contour must be long enough
+            
+            # Calculate the pairwise distance
+            diff = XY[ii:jj] - XY[ii+1:jj+1]
+            dist = np.sqrt( np.power(diff[:,0],2) + np.power(diff[:,1],2) )
+            
+            # Calculate the distance between start and end point
+            dist_point = np.sqrt( np.power((XY[0,0]-XY[-1,0]),2) + np.power((XY[0,1]-XY[-1,1]),2) )
+            
+            if dist_point < np.percentile(dist, 98):
+                return True
+            else:
+                return False
+            
+    
         # Select the xy point data
         XY = contour.vertices
 
         # Assert that the contour is closed and the start and end point are close in space
-        if isclosed:
-            assert( np.allclose(XY[0], XY[-1]) )
+        #if isclosed:
+        if is_closed(XY):
+            #assert( np.allclose(XY[0], XY[-1]) )
         
             # Add half of the array at the beginning, the other half at the end
             center = np.int(np.floor(len(XY)/2))
