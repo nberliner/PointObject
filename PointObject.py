@@ -143,7 +143,7 @@ class PointObject(IPyNotebookStyles):
             clusterData = None
             print("Clustering data not present. Not saving cluster data.")
         try:
-            contourData = self.contour.getResult()
+            contourData = self.contour.getResult( smoothed=True )
         except AttributeError:
             contourData = None
             print("Contour data not present. Not saving contour data.")
