@@ -418,20 +418,20 @@ class Curvature(IPyNotebookStyles):
 #                ax.scatter(x=xc2, y=yc2, facecolor='none', alpha=0.8, edgecolor='blue', s=s+20, cmap=plt.cm.seismic_r)
     
     
-    def table(self):
+    def table(self, percentile):
         """
         Generate a table with the curvature values from the selected regions.
         """
         rows    = list(self.contourSelected.keys())
         columns = ['Frame', '1', '2', 'Sum']
-        header  = "95 percentile of the curvature segments"
+        header  = "{} percentile of the curvature segments".format(percentile)
         
         htmlTable = HTMLtable()
         
         return htmlTable(rows, columns,header) % self._returnTableValues()
         
     
-    def _returnTableValues(self):
+    def _returnTableValues(self, percent):
         result = list()
         lookup = dict()
         frames = list()
@@ -443,7 +443,7 @@ class Curvature(IPyNotebookStyles):
                 # Calculate the curvature value for the selected segment
                 # We need to consider that we actually want to take the low
                 # percentile if the overall curvature is negative.
-                percent = 95
+                #percent = 95
                 if np.sum(value[1][1]) > 0:
                     curvature = np.percentile(value[1][1], percent)
                 else:
