@@ -628,7 +628,8 @@ class Contour(IPyNotebookStyles):
             return
         
         m, n = smoothWindow
-        window = np.ones((m, n))
+        m /= 10
+        n /= 10
         
         self.contourSmooth = dict()
         
@@ -637,13 +638,77 @@ class Contour(IPyNotebookStyles):
             for contourPaths in self.contour[frame]:
                 xc = contourPaths.vertices[:,0]
                 yc = contourPaths.vertices[:,1]
-                contourLine = np.vstack([xc.ravel(),yc.ravel()]).T
-                contourLineSmooth = moving_average_2d(contourLine, window)
+                
+                extent_x = (max(xc) - min(xc)) / 10.0 # use 10nm pixel size
+                extent_y = (max(yc) - min(yc)) / 10.0 # use 10nm pixel size
+                
+                extent_x += 10*len(xc)
+                extent_y += 10*len(yc)
+                
+                # Align the points on a matrix length
+                xc_aligned = np.zeros((extent_x))
+                yc_aligned = np.zeros((extent_y))
+                
+                # Populate the x-array
+                x_idx = list()
+                for i, point in enumerate(xc):
+                    if i == 0:
+                        idx = 0
+                    else:
+                        delta_idx = np.floor( np.abs(xc[i]-xc[i-1]) / 10 )
+                        if delta_idx == 0:
+                            delta_idx = 1
+                        idx = max(np.where( xc_aligned > 0 )[0]) + delta_idx
+                        idx = np.floor(idx)
+                  
+                    x_idx.append(idx)
+                    xc_aligned[idx] = point
+                
+                # Populate the y-array
+                y_idx = list()
+                for i, point in enumerate(yc):
+                    if i == 0:
+                        idx = 0
+                    else:
+                        delta_idx = np.round( np.abs(yc[i]-yc[i-1]) / 10 )
+                        if delta_idx == 0:
+                            delta_idx = 1
+                        idx = max(np.where( yc_aligned > 0 )[0]) + delta_idx
+                        idx = np.round(idx)
+                    
+                    y_idx.append(idx)
+                    yc_aligned[idx] = point
+                
+                xc_aligned_smooth = np.zeros((extent_x))
+                for i in np.arange(len(xc_aligned)):
+                    if i < m:
+                        xc_aligned_smooth[i] = sum(xc_aligned[0:i+m]) / len(np.where(xc_aligned[0:i+m] > 0)[0])
+                    elif ((i+m) > len(xc_aligned)):
+                        xc_aligned_smooth[i] = sum(xc_aligned[i-m:]) / len(np.where(xc_aligned[i-m:] > 0)[0])
+                    else:
+                        xc_aligned_smooth[i] = sum(xc_aligned[i-m:i+m]) / len(np.where(xc_aligned[i-m:i+m] > 0)[0])
+                
+                yc_aligned_smooth = np.zeros((extent_y))
+                for i in np.arange(len(yc_aligned)):
+                    if i < n:
+                        yc_aligned_smooth[i] = sum(yc_aligned[0:i+n]) / len(np.where(yc_aligned[0:i+n] > 0)[0])
+                    elif ((i+n) > len(yc_aligned)):
+                        yc_aligned_smooth[i] = sum(yc_aligned[i-n:]) / len(np.where(yc_aligned[i-n:] > 0)[0])
+                    else:
+                        yc_aligned_smooth[i] = sum(yc_aligned[i-n:i+n]) / len(np.where(yc_aligned[i-n:i+n] > 0)[0])
+                    
+                # Extract the convolved values
+                xc_smooth = xc_aligned_smooth[x_idx]
+                yc_smooth = yc_aligned_smooth[y_idx]
+                
+                
+                contourLine       = np.vstack([xc.ravel(),yc.ravel()]).T
+                contourLineSmooth = np.vstack([xc_smooth.ravel(),yc_smooth.ravel()]).T
                 
                 contourLineSmoothPath = mpl.path.Path(contourLineSmooth, closed=True)
                 self.contourSmooth.setdefault(frame, list()).append(contourLineSmoothPath)
             
-                ax.scatter(x=contourLine[:,0],       y=contourLine[:,1],       color='blue', s=5, alpha=0.6)
+                ax.scatter(x=contourLine[:,0],       y=contourLine[:,1],       color='red', s=2, alpha=0.6)
                 patch = mpl.patches.PathPatch(contourLineSmoothPath, facecolor='none', edgecolor='red', lw=2)
                 ax.add_patch(patch)
 
